@@ -4,6 +4,10 @@
  * standalone companion doc, linked, never duplicated). This script projects
  * SKILL.md into every agent-specific adapter so nothing drifts.
  *
+ * Claude Code plugin layout (single skill): root SKILL.md — do NOT also put a
+ * copy under skills/<name>/ (that yields the redundant /spec-md:spec-md stem
+ * under plugin name spec-md). Portable Agent Skills go to .agents/skills/<name>/.
+ *
  *   node scripts/sync-adapters.mjs           # write all adapters
  *   node scripts/sync-adapters.mjs --check   # verify they are up to date (CI)
  *
@@ -41,13 +45,20 @@ function intro(agent) {
 /** @param {string} skillRaw */
 export function buildAdapterOutputs(skillRaw) {
   const { fm, body } = splitSkillMarkdown(skillRaw);
+  const skillName = fm.name || "spec-md";
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(skillName)) {
+    throw new Error(
+      `SKILL.md frontmatter name must be a lowercase kebab id; got ${JSON.stringify(skillName)}`
+    );
+  }
   const description =
     fm.description ||
     "Author or update *.spec.md files — Open Knowledge Format specs that keep intent, behavior, and verification aligned.";
 
   return [
     {
-      path: "skills/spec-md/SKILL.md",
+      // Portable Agent Skills path — Cursor, Codex, and other agentskills.io clients.
+      path: `.agents/skills/${skillName}/SKILL.md`,
       content: skillRaw.trimEnd() + "\n",
     },
     {

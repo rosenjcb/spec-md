@@ -1,5 +1,11 @@
 # @rosenjcb/spec-md
 
+## 0.3.5
+
+### Patch Changes
+
+- Claude Code surface is `/spec-md` (skill: create or update) plus `/spec-md:check` and `/spec-md:coverage` only. Drop author/create/update/new command stems and the nested `skills/spec-md/` copy (root `SKILL.md` is the plugin skill). Portable Agent Skills path is `.agents/skills/spec-md/` for Cursor/Codex. CLI gains a `create` alias for `new`.
+
 ## 0.3.4
 
 ### Patch Changes

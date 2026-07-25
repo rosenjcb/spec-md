@@ -28,7 +28,7 @@ npm install --global @rosenjcb/spec-md
 | `spec-md coverage [paths…]` | Report which `TC-N` have at least one `[TC-N]` test, and flag tags that reference a `TC-N` the spec never declares. |
 | `spec-md check [paths…]` | `lint` + `coverage`, strict. The one to run in CI. |
 | `spec-md list [paths…]` | List every spec with FR/TC counts and a coverage bar. |
-| `spec-md new <domain>` | Scaffold `<domain>.spec.md` from the canonical template. |
+| `spec-md new <domain>` | Scaffold `<domain>.spec.md` from the canonical template. (`create` / `init` aliases) |
 
 Paths default to the current directory and are searched recursively for
 `*.spec.md` files (build and dependency directories are skipped).

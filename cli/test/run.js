@@ -236,6 +236,18 @@ test("new scaffolds a spec that lints clean of errors", () => {
   }
 });
 
+test("create is an alias for new", () => {
+  const dir = mkdtempSync(join(tmpdir(), "spec-md-create-"));
+  try {
+    const out = join(dir, "gadget.spec.md");
+    const r = run(["create", "gadget", "--out", out]);
+    assert.equal(r.code, 0, r.out);
+    assert.ok(existsSync(out));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("help and version work", () => {
   assert.equal(run(["--version"]).code, 0);
   assert.match(run(["--help"]).out, /Usage/);

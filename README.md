@@ -9,7 +9,7 @@
 <p><em>The constraint is no longer implementation speed.<br />The constraint is alignment.</em></p>
 
 <p>
-  <img src="https://img.shields.io/badge/version-0.3.4-6366F1" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.3.5-6366F1" alt="Version" />
   <img src="https://img.shields.io/badge/status-draft-8B5CF6" alt="Status: draft" />
   <img src="https://img.shields.io/badge/built%20on-Open%20Knowledge%20Format-22C55E" alt="Built on Open Knowledge Format" />
 </p>
@@ -23,12 +23,15 @@
 Get spec.md into your project in one line. Full guide: **[INSTALL.md](./INSTALL.md)**.
 
 ```bash
-# Claude Code — plugin (skill + /spec-md:new, /spec-md:update, /spec-md:check, /spec-md:coverage)
+# Claude Code — plugin (/spec-md + /spec-md:check + /spec-md:coverage)
 /plugin marketplace add rosenjcb/spec.md
 /plugin install spec-md@spec-md
 
-# Any agent — install the skill + rule files (Cursor, Windsurf, Cline, Copilot, AGENTS.md)
+# Cursor / Codex / others — same skill id (spec-md); default also writes AGENTS.md
 curl -fsSL https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.sh | bash
+# ./install.sh --cursor   # rule + .agents/skills/spec-md
+# ./install.sh --agents   # AGENTS.md + .agents/skills/spec-md
+# ./install.sh --all
 
 # CLI — lint specs and check TC-N test coverage (great in CI)
 npx @rosenjcb/spec-md check
@@ -36,8 +39,8 @@ npx @rosenjcb/spec-md check
 
 | Surface | What you get |
 |---------|--------------|
-| **Claude Code plugin** | The skill plus `/spec-md:new`, `/spec-md:update`, `/spec-md:check`, `/spec-md:coverage`. |
-| **`install.sh` / `install.ps1`** | The skill for Claude Code and rule files for Cursor, Windsurf, Cline, Copilot, and a portable `AGENTS.md`. |
+| **Claude Code plugin** | Root `SKILL.md` as `/spec-md` plus `/spec-md:check`, `/spec-md:coverage`. |
+| **`install.sh` / `install.ps1`** | Same `spec-md` skill into Claude / `.agents/skills/` (Cursor, Codex) plus per-agent rules and `AGENTS.md`. |
 | **[`spec-md` CLI](./cli)** | `lint`, `coverage`, `check`, `list`, `new` — validate specs and enforce `[TC-N]` coverage. |
 | **[GitHub Action](./action.yml)** | `uses: rosenjcb/spec.md@main` — fail CI when a spec drifts or a test case loses its test. |
 
