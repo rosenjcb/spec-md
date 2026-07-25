@@ -346,19 +346,16 @@ test('real repo adapters are in sync with SKILL.md', () => {
 
 console.log('\nplugin invocation nomenclature')
 /**
- * Claude Code invokes plugin commands as `/<plugin.name>:<filename-stem>`.
- * Filenames must be action-only (author.md → /spec-md:author). Putting
- * `spec` or `spec-md` in the filename produces /spec-md:spec-update — the
- * bug we already shipped once. Do not "fix" this by renaming to
- * spec:update.md; colons in filenames are not a substitute for the plugin
- * namespace.
+ * Authoring is the skill: `/spec-md` (plugin+skill name). Only check and
+ * coverage are commands — Claude maps `commands/<stem>.md` →
+ * `/spec-md:<stem>`. Do not add author/create/update command files; that
+ * duplicates the skill. Never put `spec` or `spec-md` in a command filename
+ * (→ `/spec-md:spec-update`).
  */
-const EXPECTED_COMMAND_FILES = ['author.md', 'check.md', 'coverage.md']
-const EXPECTED_INVOCATIONS = [
-  '/spec-md:author',
-  '/spec-md:check',
-  '/spec-md:coverage',
-]
+const EXPECTED_COMMAND_FILES = ['check.md', 'coverage.md']
+const EXPECTED_COMMAND_INVOCATIONS = ['/spec-md:check', '/spec-md:coverage']
+/** Docs must also advertise bare `/spec-md` for authoring (trailing space avoids matching `:check`). */
+const EXPECTED_DOC_SNIPPETS = ['/spec-md ', '/spec-md:check', '/spec-md:coverage']
 const FORBIDDEN_INVOCATION_SUBSTRINGS = [
   '/spec:update',
   '/spec:check',
@@ -369,6 +366,7 @@ const FORBIDDEN_INVOCATION_SUBSTRINGS = [
   '/spec-md:new',
   '/spec-md:create',
   '/spec-md:update',
+  '/spec-md:author',
   // Double-prefixed command stems under plugin `spec-md` (not the skill
   // `/spec-md:spec-md`, which is legitimate to document).
   '/spec-md:spec-update',
@@ -389,7 +387,7 @@ test('command files are action-only; plugin+skill brand is spec-md', () => {
     files,
     EXPECTED_COMMAND_FILES,
     `commands/*.md must be exactly ${EXPECTED_COMMAND_FILES.join(', ')} — ` +
-      `Claude maps each to /spec-md:<stem>`
+      `Claude maps each to /spec-md:<stem>; authoring is the /spec-md skill`
   )
 
   for (const file of files) {
@@ -419,29 +417,25 @@ test('command files are action-only; plugin+skill brand is spec-md', () => {
   const pluginSkill = readFileSync(join(root, 'skills/spec-md/SKILL.md'), 'utf8')
   assert.equal(splitSkillMarkdown(pluginSkill).fm.name, 'spec-md')
 
-  // Derive the live invocation strings from disk — do not hardcode a second map.
+  // Derive the live command invocations from disk — do not hardcode a second map.
   const derived = files.map(f => `/${plugin.name}:${f.replace(/\.md$/, '')}`).sort()
-  assert.deepEqual(derived, [...EXPECTED_INVOCATIONS].sort())
+  assert.deepEqual(derived, [...EXPECTED_COMMAND_INVOCATIONS].sort())
 })
 
-test('docs and manifests advertise /spec-md:<action>, not stale /spec:* forms', () => {
+test('docs and manifests advertise /spec-md + :check/:coverage, not stale forms', () => {
   const surfaces = [
     'README.md',
     'INSTALL.md',
     '.claude-plugin/plugin.json',
     '.claude-plugin/marketplace.json',
-    'commands/author.md',
   ]
   for (const rel of surfaces) {
     const text = readFileSync(join(root, rel), 'utf8')
-    // Command bodies need not self-advertise every slash form — only docs/manifests.
-    if (rel !== 'commands/author.md') {
-      for (const inv of EXPECTED_INVOCATIONS) {
-        assert.ok(
-          text.includes(inv),
-          `${rel} must mention ${inv}`
-        )
-      }
+    for (const snippet of EXPECTED_DOC_SNIPPETS) {
+      assert.ok(
+        text.includes(snippet),
+        `${rel} must mention ${JSON.stringify(snippet)}`
+      )
     }
     for (const bad of FORBIDDEN_INVOCATION_SUBSTRINGS) {
       assert.equal(

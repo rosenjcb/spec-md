@@ -25,7 +25,7 @@ spec.md ships in two layers you can mix and match:
 
 ## 1. Claude Code plugin (recommended)
 
-Installs the skill **and** the `/spec-md:author`, `/spec-md:check`, and
+Installs the `/spec-md` skill **and** the `/spec-md:check` /
 `/spec-md:coverage` commands in one step.
 
 ```
@@ -36,16 +36,14 @@ Installs the skill **and** the `/spec-md:author`, `/spec-md:check`, and
 Then in any session:
 
 ```
-/spec-md:author orders      # create or update — triage finds an existing spec
+/spec-md orders             # create or update — skill triages either way
 /spec-md:check              # lint every spec in the repo
 /spec-md:coverage           # which TC-N are missing a [TC-N] test?
 ```
 
-`/spec-md:author` always looks first: existing `*.spec.md` for that domain →
-update path; none → create path. You do not have to know which.
-
-Claude may also list `/spec-md` or `/spec-md:spec-md` — that is the **skill**
-(authoring guidance), not another subcommand.
+Authoring is just `/spec-md` — the skill. It looks for an existing
+`*.spec.md` first (update) or writes a new one (create). Only `:check` and
+`:coverage` are extra slash commands.
 
 ## 2. Claude Code skill only
 

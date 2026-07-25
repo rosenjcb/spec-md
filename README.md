@@ -23,7 +23,7 @@
 Get spec.md into your project in one line. Full guide: **[INSTALL.md](./INSTALL.md)**.
 
 ```bash
-# Claude Code — plugin (skill + /spec-md:author, /spec-md:check, /spec-md:coverage)
+# Claude Code — plugin (skill /spec-md + /spec-md:check, /spec-md:coverage)
 /plugin marketplace add rosenjcb/spec.md
 /plugin install spec-md@spec-md
 
@@ -36,7 +36,7 @@ npx @rosenjcb/spec-md check
 
 | Surface | What you get |
 |---------|--------------|
-| **Claude Code plugin** | The skill plus `/spec-md:author`, `/spec-md:check`, `/spec-md:coverage`. |
+| **Claude Code plugin** | The `/spec-md` skill (author/update) plus `/spec-md:check`, `/spec-md:coverage`. |
 | **`install.sh` / `install.ps1`** | The skill for Claude Code and rule files for Cursor, Windsurf, Cline, Copilot, and a portable `AGENTS.md`. |
 | **[`spec-md` CLI](./cli)** | `lint`, `coverage`, `check`, `list`, `new` — validate specs and enforce `[TC-N]` coverage. |
 | **[GitHub Action](./action.yml)** | `uses: rosenjcb/spec.md@main` — fail CI when a spec drifts or a test case loses its test. |

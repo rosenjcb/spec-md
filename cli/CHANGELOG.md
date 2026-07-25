@@ -4,7 +4,7 @@
 
 ### Patch Changes
 
-- Collapse Claude Code authoring into one triage command: `/spec-md:author` (create or update — looks for an existing spec first). Keep `/spec-md:check` and `/spec-md:coverage`. Drop separate create/update/new stems. CLI gains a `create` alias for `new`.
+- Claude Code surface is `/spec-md` (skill: create or update) plus `/spec-md:check` and `/spec-md:coverage` only. Drop author/create/update/new command stems. CLI gains a `create` alias for `new`.
 
 ## 0.3.4
 
