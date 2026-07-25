@@ -6,12 +6,14 @@
 #   ./install.sh --claude --cursor
 #
 # With no agent flags it installs the Claude Code skill globally
-# (~/.claude/skills/spec-md) and writes AGENTS.md into the current project.
+# (~/.claude/skills/spec-md) and writes AGENTS.md + .agents/skills/spec-md into
+# the current project.
 set -euo pipefail
 
 REPO="rosenjcb/spec.md"
 BRANCH="${SPEC_MD_REF:-main}"
 BASE_URL="https://raw.githubusercontent.com/${REPO}/${BRANCH}"
+SKILL_NAME="spec-md"
 
 # If run from a checkout, copy locally; otherwise download.
 SRC_DIR=""
@@ -41,6 +43,18 @@ fetch() {
   fi
 }
 
+# Same SKILL.md everywhere — Claude personal/project skills, and the portable
+# Agent Skills path used by Cursor / Codex / other agentskills.io clients.
+install_agents_skill() {
+  local dest_dir="$1"
+  # Prefer the synced portable copy; fall back to root SKILL.md (identical).
+  if [ -n "$SRC_DIR" ] && [ -f "$SRC_DIR/.agents/skills/${SKILL_NAME}/SKILL.md" ]; then
+    fetch ".agents/skills/${SKILL_NAME}/SKILL.md" "$dest_dir/SKILL.md"
+  else
+    fetch "SKILL.md" "$dest_dir/SKILL.md"
+  fi
+}
+
 DO_CLAUDE=0 DO_CURSOR=0 DO_WINDSURF=0 DO_CLINE=0 DO_COPILOT=0 DO_AGENTS=0
 GLOBAL=1 PROJECT_DIR="$PWD" ANY=0
 
@@ -64,7 +78,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-# Default: Claude skill (global) + AGENTS.md.
+# Default: Claude skill (global) + portable AGENTS.md / .agents/skills.
 if [ "$ANY" -eq 0 ]; then
   DO_CLAUDE=1
   DO_AGENTS=1
@@ -75,18 +89,21 @@ printf "${C_BOLD}spec.md installer${C_RESET}  (%s@%s)\n\n" "$REPO" "$BRANCH"
 
 if [ "$DO_CLAUDE" -eq 1 ]; then
   if [ "$GLOBAL" -eq 1 ]; then
-    SKILL_DIR="$HOME/.claude/skills/spec-md"
+    SKILL_DIR="$HOME/.claude/skills/${SKILL_NAME}"
   else
-    SKILL_DIR="$PROJECT_DIR/.claude/skills/spec-md"
+    SKILL_DIR="$PROJECT_DIR/.claude/skills/${SKILL_NAME}"
   fi
   # SKILL.md is self-contained (its TESTING.md reference is an absolute URL).
   fetch "SKILL.md" "$SKILL_DIR/SKILL.md"
-  ok "Claude Code skill → $SKILL_DIR"
+  ok "Claude Code skill → $SKILL_DIR  (invoke as /${SKILL_NAME})"
 fi
 
 if [ "$DO_CURSOR" -eq 1 ]; then
   fetch ".cursor/rules/spec-md.mdc" "$PROJECT_DIR/.cursor/rules/spec-md.mdc"
   ok "Cursor rule → $PROJECT_DIR/.cursor/rules/spec-md.mdc"
+  # Cursor also loads Agent Skills from .agents/skills/ (and .cursor/skills/).
+  install_agents_skill "$PROJECT_DIR/.agents/skills/${SKILL_NAME}"
+  ok "Agent skill → $PROJECT_DIR/.agents/skills/${SKILL_NAME}  (invoke as /${SKILL_NAME})"
 fi
 if [ "$DO_WINDSURF" -eq 1 ]; then
   fetch ".windsurf/rules/spec-md.md" "$PROJECT_DIR/.windsurf/rules/spec-md.md"
@@ -103,6 +120,8 @@ fi
 if [ "$DO_AGENTS" -eq 1 ]; then
   fetch "AGENTS.md" "$PROJECT_DIR/AGENTS.md"
   ok "AGENTS.md → $PROJECT_DIR/AGENTS.md"
+  install_agents_skill "$PROJECT_DIR/.agents/skills/${SKILL_NAME}"
+  ok "Agent skill → $PROJECT_DIR/.agents/skills/${SKILL_NAME}  (Cursor/Codex /${SKILL_NAME})"
 fi
 
 printf "\n${C_GREEN}${C_BOLD}Done.${C_RESET}\n"

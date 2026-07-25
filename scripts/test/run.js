@@ -8,6 +8,7 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  existsSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve, dirname } from 'node:path'
@@ -310,22 +311,34 @@ test('splitSkillMarkdown parses frontmatter and body', () => {
 })
 
 test('buildAdapterOutputs stamps generated banner into AGENTS.md', () => {
-  const skill = '---\ntitle: Demo\ndescription: Teach agents\n---\n\nRules here\n'
-  const agents = buildAdapterOutputs(skill).find(t => t.path === 'AGENTS.md')
+  const skill = '---\nname: demo\ndescription: Teach agents\n---\n\nRules here\n'
+  const outputs = buildAdapterOutputs(skill)
+  const agents = outputs.find(t => t.path === 'AGENTS.md')
   assert.ok(agents)
   assert.match(agents.content, /GENERATED FROM SKILL.md/)
   assert.match(agents.content, /Rules here/)
+  const portable = outputs.find(t => t.path === '.agents/skills/demo/SKILL.md')
+  assert.ok(portable, 'portable skill path follows frontmatter name')
+  assert.equal(
+    outputs.some(t => t.path.startsWith('skills/')),
+    false,
+    'must not emit nested plugin skills/<name>/'
+  )
 })
 
 test('syncAdapters writes adapter files from SKILL.md', () => {
   withTempDir(dir => {
     writeFileSync(
       join(dir, 'SKILL.md'),
-      '---\ntitle: Demo\ndescription: Teach agents\n---\n\nAdapter body\n'
+      '---\nname: demo\ndescription: Teach agents\n---\n\nAdapter body\n'
     )
     const { wrote } = syncAdapters(dir)
     assert.ok(wrote > 0)
     assert.match(readFileSync(join(dir, 'AGENTS.md'), 'utf8'), /Adapter body/)
+    assert.match(
+      readFileSync(join(dir, '.agents/skills/demo/SKILL.md'), 'utf8'),
+      /Adapter body/
+    )
   })
 })
 
@@ -346,11 +359,9 @@ test('real repo adapters are in sync with SKILL.md', () => {
 
 console.log('\nplugin invocation nomenclature')
 /**
- * Authoring is the skill: `/spec-md` (plugin+skill name). Only check and
- * coverage are commands — Claude maps `commands/<stem>.md` →
- * `/spec-md:<stem>`. Do not add author/create/update command files; that
- * duplicates the skill. Never put `spec` or `spec-md` in a command filename
- * (→ `/spec-md:spec-update`).
+ * Authoring is root SKILL.md → `/spec-md`. Only check/coverage are commands
+ * (`commands/<stem>.md` → `/spec-md:<stem>`). No nested `skills/spec-md/`
+ * (that double-named the slash form). Portable copy: `.agents/skills/spec-md/`.
  */
 const EXPECTED_COMMAND_FILES = ['check.md', 'coverage.md']
 const EXPECTED_COMMAND_INVOCATIONS = ['/spec-md:check', '/spec-md:coverage']
@@ -367,8 +378,8 @@ const FORBIDDEN_INVOCATION_SUBSTRINGS = [
   '/spec-md:create',
   '/spec-md:update',
   '/spec-md:author',
-  // Double-prefixed command stems under plugin `spec-md` (not the skill
-  // `/spec-md:spec-md`, which is legitimate to document).
+  // Nested plugin skill dir caused /spec-md:spec-md; do not reintroduce or advertise.
+  '/spec-md:spec-md',
   '/spec-md:spec-update',
   '/spec-md:spec-check',
   '/spec-md:spec-coverage',
@@ -414,8 +425,16 @@ test('command files are action-only; plugin+skill brand is spec-md', () => {
   const { fm } = splitSkillMarkdown(skillRaw)
   assert.equal(fm.name, 'spec-md')
 
-  const pluginSkill = readFileSync(join(root, 'skills/spec-md/SKILL.md'), 'utf8')
-  assert.equal(splitSkillMarkdown(pluginSkill).fm.name, 'spec-md')
+  // Single-skill Claude plugin layout: root SKILL.md only — no skills/<name>/.
+  assert.equal(
+    existsSync(join(root, 'skills')),
+    false,
+    'skills/ must not exist (nested skills/spec-md → /spec-md:spec-md)'
+  )
+
+  const agentsSkill = join(root, '.agents/skills/spec-md/SKILL.md')
+  assert.equal(existsSync(agentsSkill), true, 'portable .agents/skills/spec-md/SKILL.md')
+  assert.equal(readFileSync(agentsSkill, 'utf8'), skillRaw.trimEnd() + '\n')
 
   // Derive the live command invocations from disk — do not hardcode a second map.
   const derived = files.map(f => `/${plugin.name}:${f.replace(/\.md$/, '')}`).sort()

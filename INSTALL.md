@@ -9,7 +9,8 @@
 spec.md ships in two layers you can mix and match:
 
 1. **The skill** — the authoring guidance that teaches an agent to write and
-   maintain `*.spec.md` files. Same content, packaged for each agent.
+   maintain `*.spec.md` files. Same content, packaged for each agent as
+   `spec-md` (invoke as `/spec-md`).
 2. **The CLI** — `spec-md`, a zero-dependency validator/coverage tool that makes
    specs enforceable in CI.
 
@@ -17,16 +18,21 @@ spec.md ships in two layers you can mix and match:
 |----------|---------|
 | **Claude Code** (plugin) | `/plugin marketplace add rosenjcb/spec.md` then `/plugin install spec-md@spec-md` |
 | **Claude Code** (skill only) | `curl -fsSL https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.sh \| bash` |
-| **Cursor / Windsurf / Cline / Copilot** | `install.sh --cursor --windsurf --cline --copilot` (see below) |
-| **Any agent** (portable) | drop [`AGENTS.md`](./AGENTS.md) at your repo root |
+| **Cursor** | `./install.sh --cursor` → rule + `.agents/skills/spec-md` |
+| **Codex / portable** | `./install.sh --agents` → `AGENTS.md` + `.agents/skills/spec-md` |
+| **Windsurf / Cline / Copilot** | `./install.sh --windsurf` / `--cline` / `--copilot` |
 | **CI / command line** | `npm i -D @rosenjcb/spec-md` · `npx @rosenjcb/spec-md check` |
+
+Default `curl … \| bash` = Claude skill (global) + `AGENTS.md` + `.agents/skills/spec-md`.
+Use `--all` or explicit flags for the other agents. Prefer **plugin XOR skill-only**
+for Claude — not both (duplicate `/spec-md` entries).
 
 ---
 
 ## 1. Claude Code plugin (recommended)
 
-Installs the `/spec-md` skill **and** the `/spec-md:check` /
-`/spec-md:coverage` commands in one step.
+Root `SKILL.md` is the plugin's single skill (no nested `skills/spec-md/` copy).
+Commands are only `:check` and `:coverage`.
 
 ```
 /plugin marketplace add rosenjcb/spec.md
@@ -41,36 +47,40 @@ Then in any session:
 /spec-md:coverage           # which TC-N are missing a [TC-N] test?
 ```
 
-Authoring is just `/spec-md` — the skill. It looks for an existing
-`*.spec.md` first (update) or writes a new one (create). Only `:check` and
-`:coverage` are extra slash commands.
+Authoring is `/spec-md`. Claude may also list a namespaced form of the same
+skill; use the bare `/spec-md`. Do not install the skill a second time via
+`install.sh --claude` if the plugin is already enabled.
 
 ## 2. Claude Code skill only
 
-If you just want the authoring guidance (no commands), the installer copies the
-skill into `~/.claude/skills/spec-md/` (it links to the companion
-[`TESTING.md`](./TESTING.md) rather than bundling a copy of it):
+Authoring guidance without the plugin commands — copies into
+`~/.claude/skills/spec-md/` (invoke as `/spec-md`):
 
 ```bash
-# global (default)
+# global (default) — also writes AGENTS.md + .agents/skills/spec-md into cwd
 curl -fsSL https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.sh | bash
 
-# project-local: writes ./.claude/skills/spec-md/
+# project-local Claude skill only:
 ./install.sh --claude --local
 ```
 
-## 3. Other agents
+## 3. Cursor, Codex, and other agents
 
-The same guidance is generated into each agent's native rule format. The
-installer drops the right file into your project:
+Same skill id everywhere: **`spec-md`** → invoke as **`/spec-md`**.
+
+| Flag | What lands in the project |
+|------|---------------------------|
+| `--cursor` | `.cursor/rules/spec-md.mdc` + `.agents/skills/spec-md/SKILL.md` |
+| `--agents` | `AGENTS.md` + `.agents/skills/spec-md/SKILL.md` (Codex, Jules, …) |
+| `--windsurf` | `.windsurf/rules/spec-md.md` |
+| `--cline` | `.clinerules/spec-md.md` |
+| `--copilot` | `.github/copilot-instructions.md` |
+| `--all` | every row above (+ Claude skill) |
 
 ```bash
-./install.sh --cursor      # .cursor/rules/spec-md.mdc
-./install.sh --windsurf    # .windsurf/rules/spec-md.md
-./install.sh --cline       # .clinerules/spec-md.md
-./install.sh --copilot     # .github/copilot-instructions.md
-./install.sh --agents      # AGENTS.md (portable; Codex, Jules, and others)
-./install.sh --all         # every one of the above
+./install.sh --cursor
+./install.sh --agents
+./install.sh --all
 ```
 
 Windows (PowerShell):
@@ -81,9 +91,13 @@ irm https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.ps1 | iex
 ./install.ps1 -All
 ```
 
-Prefer to commit the files yourself? They already live in this repo under
-`.cursor/`, `.windsurf/`, `.clinerules/`, `.github/`, and `AGENTS.md` — copy the
-one you need. All of them are generated from `SKILL.md`, so they never drift.
+Prefer to commit the files yourself? They live in this repo under
+`.agents/skills/spec-md/`, `.cursor/`, `.windsurf/`, `.clinerules/`,
+`.github/`, and `AGENTS.md`. All generated from root `SKILL.md`.
+
+`.agents/skills/` is the [Agent Skills](https://agentskills.io) path — Cursor and
+Codex both load it. There is no nested Claude `skills/spec-md/` directory in the
+plugin (that double-named the slash form).
 
 ## 4. The CLI
 
@@ -131,8 +145,8 @@ Or skip the action and run the CLI directly: `npx @rosenjcb/spec-md check --stri
 
 ## Keeping the adapters in sync (maintainers)
 
-`SKILL.md` is the single source of truth. The agent adapters and the plugin's
-skill copy are generated:
+`SKILL.md` (repo root) is the single source of truth **and** the Claude plugin
+skill. Adapters are generated:
 
 ```bash
 pnpm run sync         # regenerate every adapter from SKILL.md
@@ -140,5 +154,6 @@ pnpm run sync:check   # verify they are up to date (runs in CI)
 ```
 
 Never edit a generated file by hand — change `SKILL.md` and re-run `pnpm run sync`.
+Do not reintroduce `skills/<name>/` under the plugin root.
 
 Releases (npm, tags, GitHub Action): see **[RELEASING.md](./RELEASING.md)**.
