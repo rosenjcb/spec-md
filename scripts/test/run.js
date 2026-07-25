@@ -353,11 +353,11 @@ console.log('\nplugin invocation nomenclature')
  * spec:update.md; colons in filenames are not a substitute for the plugin
  * namespace.
  */
-const EXPECTED_COMMAND_FILES = ['check.md', 'coverage.md', 'new.md', 'update.md']
+const EXPECTED_COMMAND_FILES = ['check.md', 'coverage.md', 'create.md', 'update.md']
 const EXPECTED_INVOCATIONS = [
   '/spec-md:check',
   '/spec-md:coverage',
-  '/spec-md:new',
+  '/spec-md:create',
   '/spec-md:update',
 ]
 const FORBIDDEN_INVOCATION_SUBSTRINGS = [
@@ -367,7 +367,12 @@ const FORBIDDEN_INVOCATION_SUBSTRINGS = [
   '/spec-update',
   '/spec-check',
   '/spec-coverage',
-  '/spec-md:spec-',
+  '/spec-md:new',
+  // Double-prefixed command stems under plugin `spec-md` (not the skill
+  // `/spec-md:spec-md`, which is legitimate to document).
+  '/spec-md:spec-update',
+  '/spec-md:spec-check',
+  '/spec-md:spec-coverage',
   '/spec-md:spec:',
   '/spec-md:spec.',
   '`/spec`',
@@ -424,13 +429,13 @@ test('docs and manifests advertise /spec-md:<action>, not stale /spec:* forms', 
     'INSTALL.md',
     '.claude-plugin/plugin.json',
     '.claude-plugin/marketplace.json',
-    'commands/new.md',
+    'commands/create.md',
   ]
   for (const rel of surfaces) {
     const text = readFileSync(join(root, rel), 'utf8')
     for (const inv of EXPECTED_INVOCATIONS) {
-      // new.md only needs to mention update as the sibling command
-      if (rel === 'commands/new.md' && inv !== '/spec-md:update') continue
+      // create.md only needs to mention update as the sibling command
+      if (rel === 'commands/create.md' && inv !== '/spec-md:update') continue
       assert.ok(
         text.includes(inv),
         `${rel} must mention ${inv}`

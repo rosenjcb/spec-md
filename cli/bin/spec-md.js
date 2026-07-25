@@ -225,6 +225,7 @@ ${c.bold("Commands")}
   ${c.cyan("check")} [paths]       lint + coverage, strict (ideal for CI)
   ${c.cyan("list")} [paths]        List every spec with FR/TC counts and coverage
   ${c.cyan("new")} <domain>        Scaffold a new <domain>.spec.md from a template
+  ${c.cyan("create")} <domain>     Alias for new
 
 ${c.bold("Options")}
   --strict            Exit non-zero on warnings / coverage gaps
@@ -272,6 +273,7 @@ const commands = {
   list: cmdList,
   ls: cmdList,
   new: cmdNew,
+  create: cmdNew,
   init: cmdNew,
 };
 

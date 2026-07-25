@@ -1,5 +1,11 @@
 # @rosenjcb/spec-md
 
+## 0.3.5
+
+### Patch Changes
+
+- Rename Claude Code plugin create command to `/spec-md:create` (was `/spec-md:new`). Command files stay action-only under plugin `spec-md`. CLI gains a `create` alias for `new`.
+
 ## 0.3.4
 
 ### Patch Changes

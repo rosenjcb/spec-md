@@ -25,7 +25,7 @@ spec.md ships in two layers you can mix and match:
 
 ## 1. Claude Code plugin (recommended)
 
-Installs the skill **and** the `/spec-md:new`, `/spec-md:update`,
+Installs the skill **and** the `/spec-md:create`, `/spec-md:update`,
 `/spec-md:check`, and `/spec-md:coverage` commands in one step.
 
 ```
@@ -36,11 +36,16 @@ Installs the skill **and** the `/spec-md:new`, `/spec-md:update`,
 Then in any session:
 
 ```
-/spec-md:new orders         # author a new spec for the orders domain
+/spec-md:create orders      # author a new spec for the orders domain
 /spec-md:update orders      # reconcile it with the current code
 /spec-md:check              # lint every spec in the repo
 /spec-md:coverage           # which TC-N are missing a [TC-N] test?
 ```
+
+Claude may also list `/spec-md` or `/spec-md:spec-md` — that is the **skill**
+(authoring guidance), not a fifth subcommand. Older installs listed stems
+that still contained `spec` in the filename (so Claude stacked it under the
+plugin name); those files are gone — only the four action stems above remain.
 
 ## 2. Claude Code skill only
 

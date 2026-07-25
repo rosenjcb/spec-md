@@ -1,7 +1,7 @@
 {
   "name": "spec-md",
-  "description": "Author or update *.spec.md files — Open Knowledge Format specs that capture a system's intent, behavior, and verification so humans and agents stay aligned. Includes the spec-md skill and /spec-md:new, /spec-md:update, /spec-md:check, /spec-md:coverage commands.",
-  "version": "0.3.4",
+  "description": "Author or update *.spec.md files — Open Knowledge Format specs that capture a system's intent, behavior, and verification so humans and agents stay aligned. Includes the spec-md skill and /spec-md:create, /spec-md:update, /spec-md:check, /spec-md:coverage commands.",
+  "version": "0.3.5",
   "author": {
     "name": "rosenjcb",
     "url": "https://github.com/rosenjcb"
