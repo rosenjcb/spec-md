@@ -4,7 +4,7 @@
 
 ### Patch Changes
 
-- Rename Claude Code plugin create command to `/spec-md:create` (was `/spec-md:new`). Command files stay action-only under plugin `spec-md`. CLI gains a `create` alias for `new`.
+- Collapse Claude Code authoring into one triage command: `/spec-md:author` (create or update — looks for an existing spec first). Keep `/spec-md:check` and `/spec-md:coverage`. Drop separate create/update/new stems. CLI gains a `create` alias for `new`.
 
 ## 0.3.4
 

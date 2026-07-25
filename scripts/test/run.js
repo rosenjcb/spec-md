@@ -347,18 +347,17 @@ test('real repo adapters are in sync with SKILL.md', () => {
 console.log('\nplugin invocation nomenclature')
 /**
  * Claude Code invokes plugin commands as `/<plugin.name>:<filename-stem>`.
- * Filenames must be action-only (update.md → /spec-md:update). Putting
+ * Filenames must be action-only (author.md → /spec-md:author). Putting
  * `spec` or `spec-md` in the filename produces /spec-md:spec-update — the
  * bug we already shipped once. Do not "fix" this by renaming to
  * spec:update.md; colons in filenames are not a substitute for the plugin
  * namespace.
  */
-const EXPECTED_COMMAND_FILES = ['check.md', 'coverage.md', 'create.md', 'update.md']
+const EXPECTED_COMMAND_FILES = ['author.md', 'check.md', 'coverage.md']
 const EXPECTED_INVOCATIONS = [
+  '/spec-md:author',
   '/spec-md:check',
   '/spec-md:coverage',
-  '/spec-md:create',
-  '/spec-md:update',
 ]
 const FORBIDDEN_INVOCATION_SUBSTRINGS = [
   '/spec:update',
@@ -368,6 +367,8 @@ const FORBIDDEN_INVOCATION_SUBSTRINGS = [
   '/spec-check',
   '/spec-coverage',
   '/spec-md:new',
+  '/spec-md:create',
+  '/spec-md:update',
   // Double-prefixed command stems under plugin `spec-md` (not the skill
   // `/spec-md:spec-md`, which is legitimate to document).
   '/spec-md:spec-update',
@@ -429,17 +430,18 @@ test('docs and manifests advertise /spec-md:<action>, not stale /spec:* forms', 
     'INSTALL.md',
     '.claude-plugin/plugin.json',
     '.claude-plugin/marketplace.json',
-    'commands/create.md',
+    'commands/author.md',
   ]
   for (const rel of surfaces) {
     const text = readFileSync(join(root, rel), 'utf8')
-    for (const inv of EXPECTED_INVOCATIONS) {
-      // create.md only needs to mention update as the sibling command
-      if (rel === 'commands/create.md' && inv !== '/spec-md:update') continue
-      assert.ok(
-        text.includes(inv),
-        `${rel} must mention ${inv}`
-      )
+    // Command bodies need not self-advertise every slash form — only docs/manifests.
+    if (rel !== 'commands/author.md') {
+      for (const inv of EXPECTED_INVOCATIONS) {
+        assert.ok(
+          text.includes(inv),
+          `${rel} must mention ${inv}`
+        )
+      }
     }
     for (const bad of FORBIDDEN_INVOCATION_SUBSTRINGS) {
       assert.equal(

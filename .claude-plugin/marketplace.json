@@ -12,7 +12,7 @@
     {
       "name": "spec-md",
       "source": "./",
-      "description": "Author and maintain *.spec.md documents: OKF specs that keep intent, behavior, and verification aligned across humans and agents. Bundles the spec-md skill plus /spec-md:create, /spec-md:update, /spec-md:check, and /spec-md:coverage commands.",
+      "description": "Author and maintain *.spec.md documents: OKF specs that keep intent, behavior, and verification aligned across humans and agents. Bundles the spec-md skill plus /spec-md:author, /spec-md:check, and /spec-md:coverage commands.",
       "version": "0.3.5",
       "author": {
         "name": "rosenjcb",
