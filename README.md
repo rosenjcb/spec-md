@@ -30,6 +30,7 @@ The core loop: **describe behavior once in the spec → build the implementation
 
 ## Contents
 
+- [Motivation](#motivation)
 - [How it works](#how-it-works)
 - [Install](#install)
 - [Quickstart](#quickstart)
@@ -40,11 +41,35 @@ The core loop: **describe behavior once in the spec → build the implementation
 - [Keeping a spec alive](#keeping-a-spec-alive)
 - [Review & sign-off](#review--sign-off)
 - [CI](#ci)
-- [Motivation](#motivation)
 - [Who reads a spec](#who-reads-a-spec)
 - [Repository map](#repository-map)
 - [FAQ](#faq)
 - [Next readings](#next-readings)
+
+---
+
+## Motivation
+
+In 2026, most software is no longer written line-by-line by humans. Frontend applications, backend services, infrastructure, migrations, tests, and documentation are routinely generated or assisted by AI systems.
+
+This changes the shape of development. Teams can now produce working software quickly; what used to take weeks can be scaffolded in hours and refined continuously. The constraint is no longer implementation speed.
+
+The constraint is alignment.
+
+As more of the system is produced by agents, ambiguity becomes more expensive. A missing requirement or unclear rule no longer stays local — it gets replicated across the code, tests, APIs, and infrastructure generated from the same misunderstanding. Small gaps in understanding lead to large system drift:
+
+* incorrect implementations
+* broken or incomplete test coverage
+* inconsistent APIs
+* incorrect assumptions in infrastructure
+* repeated QA cycles
+* rework across multiple services
+
+The faster we generate software, the more important it becomes that we define *what we actually mean* before we generate it.
+
+Modern development already reflects this reality: requirements emerge as teams learn by building, and systems evolve as that understanding improves. That iteration is healthy — the aim is to make it explicit, structured, and shareable instead of leaving it implicit.
+
+spec.md treats software development as a shared knowledge system between Product, Engineering, QA, and AI agents. Instead of static requirement documents, specs become living context that evolves alongside the system they describe. The framework uses and extends the Open Knowledge Format (OKF) to structure that context so it can be consumed by both humans and agents — a consistent, machine-readable model of intent, behavior, and constraints that stays synchronized with the system as it changes, rather than another pile of documentation to maintain by hand.
 
 ---
 
@@ -392,31 +417,6 @@ Or skip the action and run the CLI directly:
 ```yaml
 - run: npx @rosenjcb/spec-md check --strict
 ```
-
----
-
-## Motivation
-
-In 2026, most software is no longer written line-by-line by humans. Frontend applications, backend services, infrastructure, migrations, tests, and documentation are routinely generated or assisted by AI systems.
-
-This changes the shape of development. Teams can now produce working software quickly; what used to take weeks can be scaffolded in hours and refined continuously. The constraint is no longer implementation speed.
-
-The constraint is alignment.
-
-As more of the system is produced by agents, ambiguity becomes more expensive. A missing requirement or unclear rule no longer stays local — it gets replicated across the code, tests, APIs, and infrastructure generated from the same misunderstanding. Small gaps in understanding lead to large system drift:
-
-* incorrect implementations
-* broken or incomplete test coverage
-* inconsistent APIs
-* incorrect assumptions in infrastructure
-* repeated QA cycles
-* rework across multiple services
-
-The faster we generate software, the more important it becomes that we define *what we actually mean* before we generate it.
-
-Modern development already reflects this reality: requirements emerge as teams learn by building, and systems evolve as that understanding improves. That iteration is healthy — the aim is to make it explicit, structured, and shareable instead of leaving it implicit.
-
-spec.md treats software development as a shared knowledge system between Product, Engineering, QA, and AI agents. Instead of static requirement documents, specs become living context that evolves alongside the system they describe. The framework uses and extends the Open Knowledge Format (OKF) to structure that context so it can be consumed by both humans and agents — a consistent, machine-readable model of intent, behavior, and constraints that stays synchronized with the system as it changes, rather than another pile of documentation to maintain by hand.
 
 ---
 
