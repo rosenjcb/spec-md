@@ -128,11 +128,37 @@ proves the logic, the other proves the wiring. Both point at the same spec row.
 
 ---
 
+## Beyond examples: the behavioral model
+
+Everything above is about **examples** — the cases someone thought to write.
+That is what a `TC-N` row is for, and it is where most of the value lives.
+
+It has a known ceiling: a suite can pass while behavior has silently changed,
+because nothing checked the combinations nobody wrote down. When a domain has
+state that changes over time and behavior worth protecting mechanically, a spec
+can add an executable **behavioral model** — state, actions (`AC-N`), invariants
+(`INV-N`), properties (`BP-N`) — that `spec-md model check` explores and
+`spec-md model test` conformance-tests against the implementation.
+
+Tests protect examples. Models protect behavior. The two are complements, and a
+`TC-N` row may cite the model element it exercises:
+
+```md
+| TC-4 | FR-2, AC-1 | Order with several line items | Total sums each line |
+```
+
+The layer is optional and fully specified in **[MODELS.md](./MODELS.md)**.
+
+---
+
 ## Verify
 
-`npx @rosenjcb/spec-md check` covers tag coverage and contiguous `TC-N` /
-`FR-N` order. The join key is the bracketed `[TC-N]` prefix — see above.
+`npx @rosenjcb/spec-md check` covers tag coverage, contiguous `TC-N` / `FR-N`
+order, and (where a spec has one) the behavioral model. The join key is the
+bracketed `[TC-N]` prefix — see above.
 
 Worked example: [`examples/pizza-ts`](./examples/pizza-ts) —
 [`order.spec.md`](./examples/pizza-ts/specs/order.spec.md) with `TC-1..TC-9`,
-tagged unit tests in `test/`, tagged `.http` requests in `http/`.
+tagged unit tests in `test/`, tagged `.http` requests in `http/`, and a
+behavioral model over the ordering lifecycle conformance-tested through
+`model/orders.adapter.mjs`.

@@ -5,7 +5,8 @@ A small, dependency-light reference example for the **spec.md** standard.
 It implements a pizza ordering API directly from a single OKF spec —
 [`specs/order.spec.md`](specs/order.spec.md) — and shows how the spec's
 Functional Requirements (FR-*) and QA Test Cases (TC-*) trace into code, unit
-tests, and live HTTP integration requests.
+tests, and live HTTP integration requests, plus how its **behavioral model**
+(`MOD-1`) is conformance-tested against the running implementation.
 
 > The documents under `specs/` (`order.spec.md`, `order.review.md`) follow
 > the OKF/spec.md format. The READMEs here are ordinary developer docs.
@@ -17,6 +18,12 @@ tests, and live HTTP integration requests.
 - **Vitest** — unit + HTTP-level tests
 - **tsx** — run TypeScript directly, no build step
 - **httpyac** / IntelliJ `.http` — integration requests in [`http/`](http/)
+- **spec-md model** — the behavioral model in the spec, driven through
+  [`model/orders.adapter.mjs`](model/orders.adapter.mjs)
+
+Relative imports use `.ts` extensions so Node can load `src/` directly (type
+stripping, Node ≥ 22.18) — that is what lets the conformance adapter drive the
+real `OrderStore` with no build step.
 
 ## Layout
 
@@ -37,6 +44,8 @@ pizza-ts/
 │       ├── menu.test.ts      # pricing units
 │       ├── orders.test.ts    # order service units (TC-1, TC-4..TC-9)
 │       └── app.test.ts       # HTTP-level tests (TC-1, TC-2, TC-6, TC-9)
+├── model/
+│   └── orders.adapter.mjs    # bridges MOD-1 to OrderStore for `model test`
 └── http/                 # live integration requests (.http + httpyac)
 ```
 
@@ -55,7 +64,17 @@ npm install
 npm run start        # serve on http://localhost:3000
 npm test             # run the vitest suites
 npm run build        # type-check only (tsc --noEmit)
+
+npm run model:list   # print the behavioral contract
+npm run model:check  # explore the model on its own
+npm run model:test   # conformance: OrderStore vs. MOD-1
+npm run check        # lint + [TC-N] coverage + model check + conformance
 ```
+
+The `model:*` scripts need none of this example's dependencies — they only read
+the spec and import `src/` — but they do need `@rosenjcb/spec-md` ≥ 0.4.0. From a
+checkout of this repository, `node ../../cli/bin/spec-md.js model test .` runs the
+local CLI directly.
 
 ## API
 
@@ -105,6 +124,84 @@ one `FR` can own several `TC`s:
 - **FR-3** (TC-5) → `structuredClone` on store read/write (immutability)
 - **FR-4** (TC-6, TC-7, TC-8) → validation in `priceItem` / `OrderStore.create`
 - **FR-5** (TC-9) → `OrderStore.get` + `GET /orders/:id`
+
+## The behavioral model
+
+The spec's `### Behavioral Model` section holds `MOD-1`: the ordering lifecycle
+as state (`status`, `lineCount`, `total`), two actions (`AC-1 AddItem`,
+`AC-2 PlaceOrder`), two invariants, and two properties. It is the same contract
+the `FR-N` rows state in prose, written precisely enough to execute.
+
+```bash
+node ../../cli/bin/spec-md.js model test .
+```
+
+```text
+✓ MOD-1 Orders examples/pizza-ts/specs/order.spec.md
+  1000 trace(s), 3646 action(s), 4646 observation(s) conform
+
+✓ 1 model(s) conform, 0 failure(s)
+```
+
+Those traces are every order shape the model can build within its bounds — up
+to three lines across three sizes and two quantities, placed or still drafting —
+checked against the real `OrderStore` after every action. The nine `TC-N` rows
+cover nine named examples; this covers the combinations nobody wrote down.
+
+**What that buys you.** Suppose someone caps the order total, a change no
+reviewer would blink at:
+
+```diff
+-const total = items.reduce((sum, item) => sum + item.lineTotal, 0);
++const total = Math.min(items.reduce((sum, item) => sum + item.lineTotal, 0), 5000);
+```
+
+Every unit test still passes — `TC-4`'s order comes to 4420, comfortably under
+the cap. Conformance finds the shortest order that does not:
+
+```text
+Behavioral conformance failed
+
+Spec: Pizza Orders
+Model: MOD-1 Orders
+
+Minimal counterexample:
+  Initial state: status = "draft", lineCount = 0, total = 0, basePrice = 900, placed = false
+  Trace:
+    1. AC-1 AddItem(sizeMultiplier = 1.3, quantity = 2) → status = "draft", lineCount = 1, total = 2340, basePrice = 900
+    2. AC-1 AddItem(sizeMultiplier = 1.6, quantity = 2) → status = "draft", lineCount = 2, total = 5220, basePrice = 900
+    3. AC-2 PlaceOrder → status = "created", lineCount = 2, total = 5220, basePrice = 900
+
+Expected:
+  total = 5220
+
+Observed:
+  total = 5000
+
+Relevant contract:
+  FR-1: Create an order from a request with a customer and at least one item
+  FR-2: Compute line and order totals from menu price and size multiplier
+  AC-2 requires: status = draft and lineCount > 0
+  AC-2: status' = created
+  AC-1: total' = total + round(basePrice * sizeMultiplier) * quantity
+  INV-2: (lineCount = 0) = (total = 0)
+  BP-1: after AC-1, total = total@pre + round(basePrice * sizeMultiplier) * quantity
+  BP-2: after AC-2, total = total@pre and lineCount = lineCount@pre
+
+Possible resolutions:
+  - Restore implementation behavior so it still follows AC-1
+  - Update FR-1, FR-2 and AC-1 to define the new behavior, then add the QA Test Case that pins the boundary
+```
+
+The value is not the failure — it is that the failure forces a decision. Either
+the cap goes, or `FR-2` gains a maximum order value, which forces `AC-1` to
+change, which forces a `TC-N` for the boundary. Nothing silently redefines the
+product.
+
+The adapter is where the model meets reality: it maps the model's size
+*multipliers* onto menu sizes, and reports `total` only once the order exists,
+because `OrderStore` prices atomically. Translation belongs there so the model
+can stay an abstraction. Full reference: [MODELS.md](../../MODELS.md).
 
 ## Review & sign-off
 

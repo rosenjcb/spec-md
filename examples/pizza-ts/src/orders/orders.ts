@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { findMenuItem, unitPriceFor } from "./menu.js";
-import { SIZES } from "./types.js";
+import { findMenuItem, unitPriceFor } from "./menu.ts";
+import { SIZES } from "./types.ts";
 import type {
   CreateOrderRequest,
   Order,
   OrderItem,
   OrderItemInput,
-} from "./types.js";
+} from "./types.ts";
 
 /** Raised when a create-order request fails validation (FR-1, FR-4). */
 export class ValidationError extends Error {

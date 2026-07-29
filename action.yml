@@ -1,5 +1,5 @@
 name: "spec.md check"
-description: "Lint *.spec.md files and verify that every TC-N test case has a matching [TC-N] test."
+description: "Lint *.spec.md files, verify that every TC-N test case has a matching [TC-N] test, and check behavioral models."
 author: "rosenjcb"
 branding:
   icon: "check-square"
@@ -18,8 +18,12 @@ inputs:
     description: "Fail if a spec links a review record whose status is not approved (merge gate for the review lifecycle; specs without a linked review are not gated)."
     required: false
     default: "false"
+  conform:
+    description: "Also conformance-test behavioral models (runs `model test`, which imports each model's adapter and executes your implementation). Models without an adapter are skipped."
+    required: false
+    default: "false"
   mode:
-    description: "Which check to run: check (lint + coverage), lint, or coverage."
+    description: "Which check to run: check (lint + coverage + model check), lint, coverage, or model."
     required: false
     default: "check"
   version:
@@ -37,5 +41,7 @@ runs:
         if [ "${{ inputs.strict }}" = "true" ]; then strict_flag="--strict"; fi
         approved_flag=""
         if [ "${{ inputs.require-approved }}" = "true" ]; then approved_flag="--require-approved"; fi
-        echo "spec-md ${{ inputs.mode }} ${{ inputs.path }} $strict_flag $approved_flag"
-        npx --yes @rosenjcb/spec-md@${{ inputs.version }} ${{ inputs.mode }} "${{ inputs.path }}" $strict_flag $approved_flag
+        conform_flag=""
+        if [ "${{ inputs.conform }}" = "true" ]; then conform_flag="--conform"; fi
+        echo "spec-md ${{ inputs.mode }} ${{ inputs.path }} $strict_flag $approved_flag $conform_flag"
+        npx --yes @rosenjcb/spec-md@${{ inputs.version }} ${{ inputs.mode }} "${{ inputs.path }}" $strict_flag $approved_flag $conform_flag

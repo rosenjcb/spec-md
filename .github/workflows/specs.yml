@@ -16,7 +16,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "pnpm"
 
       - name: Install dependencies
@@ -34,9 +34,11 @@ jobs:
       - name: Tests
         run: pnpm test
 
-      # Dogfood: validate this repo's own specs and their [TC-N] coverage.
+      # Dogfood: validate this repo's own specs, their [TC-N] coverage, and the
+      # behavioral model — including conformance against the pizza example's
+      # adapter, which imports src/*.ts directly (Node >= 22.18 strips types).
       - name: Validate specs
-        run: node cli/bin/spec-md.js check . --strict
+        run: node cli/bin/spec-md.js check . --strict --conform
 
   # Dedicated status check for branch protection. Version bump is applied on the
   # branch (`pnpm run changeset:version`), not after merge.
@@ -54,7 +56,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "pnpm"
 
       - name: Install dependencies

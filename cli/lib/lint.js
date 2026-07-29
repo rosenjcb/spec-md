@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { parseFrontmatter, parseSpec, pathList } from "./parse.js";
+import { modelElements, validateModels } from "./model.js";
+import { driftWarnings } from "./drift.js";
 
 const ISO_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?)?$/;
 
@@ -38,6 +40,8 @@ function eachResource(value, fn) {
 /**
  * Lint a single spec file. Returns { filePath, problems, spec, stats }.
  * Each problem is { level: "error"|"warn", msg, line }.
+ *
+ * opts.drift — set false to skip the requirement/model drift heuristics.
  *
  * opts.requireApproved — approval state lives on the review record: the
  * spec's `review` key points at it, and the gate reads the record's
@@ -167,6 +171,62 @@ export function lintSpec(filePath, opts = {}) {
     }
   }
 
+  // --- Behavioral model (optional; see MODELS.md) ---
+  const models = spec.models;
+  const actions = modelElements(models, "ac");
+  const invariants = modelElements(models, "inv");
+  const properties = modelElements(models, "bp");
+
+  if (spec.sawModelSection && !models.length) {
+    warn("A Behavioral Model section is present but declares no ```spec-model block", null);
+  }
+  problems.push(...spec.modelProblems);
+
+  if (models.length) {
+    problems.push(...validateModels(models, { frIds }));
+    // Model ids follow the same hygiene as FR/TC: contiguous, ascending, unique.
+    checkIdSequence(models, "MOD", "Model", err);
+    checkIdSequence(actions, "AC", "Action", err);
+    checkIdSequence(invariants, "INV", "Invariant", err);
+    checkIdSequence(properties, "BP", "Behavioral property", err);
+
+    for (const model of models) {
+      if (!model.adapter) continue;
+      if (!existsSync(resolve(dir, model.adapter))) {
+        warn(
+          `\`adapter\` path does not exist (spec-relative): ${model.adapter} — ` +
+            `\`spec-md model test\` cannot run ${model.id}`,
+          model.line,
+        );
+      }
+    }
+
+    const modelIds = new Set([
+      ...models.map((m) => m.id),
+      ...actions.map((a) => a.id),
+      ...invariants.map((i) => i.id),
+      ...properties.map((p) => p.id),
+    ]);
+    for (const tc of spec.tcs) {
+      if (tc.removed) continue;
+      for (const ref of tc.modelRefs || []) {
+        if (!modelIds.has(ref)) {
+          err(`${tc.id} references ${ref}, which the behavioral model does not declare`, tc.line);
+        }
+      }
+    }
+
+    if (opts.drift !== false) problems.push(...driftWarnings(spec, models));
+  } else {
+    // A TC citing a model id in a spec with no model is a dangling reference.
+    for (const tc of spec.tcs) {
+      if (tc.removed) continue;
+      for (const ref of tc.modelRefs || []) {
+        err(`${tc.id} references ${ref}, but this spec declares no behavioral model`, tc.line);
+      }
+    }
+  }
+
   return {
     filePath,
     problems,
@@ -174,6 +234,10 @@ export function lintSpec(filePath, opts = {}) {
     stats: {
       frs: spec.frs.length,
       tcs: spec.tcs.length,
+      models: models.length,
+      actions: actions.length,
+      invariants: invariants.length,
+      properties: properties.length,
       errors: problems.filter((p) => p.level === "error").length,
       warnings: problems.filter((p) => p.level === "warn").length,
     },

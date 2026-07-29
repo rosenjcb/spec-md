@@ -1,5 +1,11 @@
 # @rosenjcb/spec-md
 
+## 0.4.0
+
+### Minor Changes
+
+- Add the executable **behavioral model** layer: a `### Behavioral Model` section holding a fenced ```spec-model block with `state`, `derived`, actions (`AC-N`), invariants (`INV-N`), and behavioral properties (`BP-N`). New `spec-md model check` explores the model's state/action space breadth-first and reports the minimal counterexample; `spec-md model test` conformance-tests an implementation against it through an adapter the model names; `spec-md model list` prints the contract. `spec-md check` now includes the model step (`--no-model` to skip, `--conform` to also run conformance), `spec-md lint` validates model structure, enforces contiguous `MOD`/`AC`/`INV`/`BP` ids, resolves `TC-N` citations of model ids, and warns on likely requirement/model drift (`--no-drift` to skip). `spec-md new --model` scaffolds the section, and the GitHub Action gains a `conform` input. The layer is opt-in: specs without a model are unaffected. The pizza-ts example gains a model and a conformance adapter driving the real `OrderStore`. See MODELS.md.
+
 ## 0.3.5
 
 ### Patch Changes

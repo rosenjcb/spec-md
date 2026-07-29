@@ -1,12 +1,12 @@
 {
   "name": "spec.md",
-  "version": "0.3.5",
+  "version": "0.4.0",
   "private": true,
-  "description": "spec.md — an agent-native specification framework. This root package wires up the packaging tooling; the publishable CLI lives in ./cli.",
+  "description": "spec.md \u2014 an agent-native specification framework. This root package wires up the packaging tooling; the publishable CLI lives in ./cli.",
   "type": "module",
   "packageManager": "pnpm@9.15.9",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.18"
   },
   "scripts": {
     "sync": "node scripts/sync-adapters.mjs",

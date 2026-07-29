@@ -1,4 +1,4 @@
-import type { MenuItem, Size } from "./types.js";
+import type { MenuItem, Size } from "./types.ts";
 
 /**
  * The pizza menu. Prices are the `small` price in cents (FR-2).

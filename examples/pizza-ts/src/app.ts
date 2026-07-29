@@ -1,6 +1,6 @@
 import express, { type Request, type Response } from "express";
-import { MENU } from "./orders/menu.js";
-import { OrderStore, ValidationError } from "./orders/orders.js";
+import { MENU } from "./orders/menu.ts";
+import { OrderStore, ValidationError } from "./orders/orders.ts";
 
 /**
  * Build the Express application. The store is injected so tests can supply

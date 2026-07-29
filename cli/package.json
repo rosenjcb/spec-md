@@ -1,7 +1,7 @@
 {
   "name": "@rosenjcb/spec-md",
-  "version": "0.3.5",
-  "description": "Lint, coverage, and scaffolding tooling for *.spec.md documents — the agent-native specification format.",
+  "version": "0.4.0",
+  "description": "Lint, coverage, behavioral-model checking, and scaffolding tooling for *.spec.md documents \u2014 the agent-native specification format.",
   "type": "module",
   "bin": {
     "spec-md": "bin/spec-md.js"
@@ -32,7 +32,11 @@
     "test-coverage",
     "agent",
     "ai",
-    "linter"
+    "linter",
+    "behavioral-model",
+    "model-checking",
+    "conformance-testing",
+    "property-based-testing"
   ],
   "homepage": "https://github.com/rosenjcb/spec.md",
   "repository": {

@@ -7,8 +7,50 @@ function yamlList(value, fallback) {
   return `[${items.join(", ")}]`;
 }
 
+/**
+ * The optional Behavioral Model section (`spec-md new <domain> --model`).
+ * Kept out of the default scaffold: a model is worth writing when behavior is
+ * worth pinning down mechanically, not for every spec.
+ */
+function modelSection(cap) {
+  return `
+### Behavioral Model
+
+<!-- The executable contract: state, actions (AC-N), invariants (INV-N), and
+behavioral properties (BP-N). \`spec-md model check\` explores it; with an
+\`adapter\`, \`spec-md model test\` checks the implementation conforms.
+Language reference: https://github.com/rosenjcb/spec.md/blob/main/MODELS.md -->
+
+\`\`\`spec-model
+model: MOD-1 ${cap}
+# adapter: ./test/${cap.toLowerCase()}.adapter.mjs
+
+# State is an abstraction of the implementation, not a copy of it.
+# \`in 0..100\` bounds generation (initial states, arguments) — not behavior.
+state:
+  value: integer in 0..100 = 0
+
+# One action per operation. Every right-hand side reads the pre-state.
+AC-1 Change:
+  requirement: FR-1
+  # requires: value < 100
+  value' = value + 1
+
+# Invariants must hold in every explored state.
+INV-1 Value stays non-negative:
+  requirement: FR-1
+  check: value >= 0
+
+# Properties are named claims about the model. Exploration covers the rest.
+BP-1 Change steps by exactly one:
+  requirement: FR-1
+  check: after AC-1, value = value@pre + 1
+\`\`\`
+`;
+}
+
 /** Scaffold body for `spec-md new <domain>`. */
-export function specTemplate({ domain, title, sources, tests }) {
+export function specTemplate({ domain, title, sources, tests, model = false }) {
   const now = new Date().toISOString().replace(/\.\d+Z$/, "Z");
   const cap = domain.charAt(0).toUpperCase() + domain.slice(1);
   return `---
@@ -60,5 +102,5 @@ Cleanup that reorders rows must renumber 1..n and update [TC-N] tags. -->
 | Test ID | Requirement | Scenario | Expected Outcome |
 |---------|-------------|----------|------------------|
 | TC-1 | FR-1 | <!-- input --> | <!-- expected --> |
-`;
+${model ? modelSection(cap) : ""}`;
 }
