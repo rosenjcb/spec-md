@@ -51,7 +51,7 @@ Paths default to the current directory and are searched recursively for
 | `--conform` | check | Also run `model test` (imports each model's adapter and executes your implementation). |
 | `--depth <n>` | model | Action-sequence depth to explore. Default `4`. |
 | `--max-states <n>` | model check | State budget. Default `4000`. |
-| `--max-traces <n>` | model test | Trace budget. Default `200`. |
+| `--max-traces <n>` | model test | Trace budget. Default `1000`. |
 | `--max-inits <n>` | model | Generated initial states. Default `8`. |
 | `--max-args <n>` | model | Values tried per action parameter. Default `3`. |
 | `--out <path>` | new | Output file path. |
@@ -82,17 +82,17 @@ state, actions (`AC-N`), invariants (`INV-N`), and behavioral properties
 conforms, through an adapter the model names:
 
 ```
-$ spec-md model check examples/counter-js
-✓ MOD-1 Counter examples/counter-js/counter.spec.md
-  explored 20 state(s), 89 transition(s) to depth 4 · 4/4 properties exercised
+$ spec-md model check examples/pizza-ts
+✓ MOD-1 Orders examples/pizza-ts/specs/order.spec.md
+  explored 171 state(s), 405 transition(s) to depth 4 · 2/2 properties exercised · 56 at the domain frontier
 
 ✓ 1 model(s), 0 violation(s), 0 unexercised properties
 ```
 
 ```
-$ spec-md model test examples/counter-js
-✓ MOD-1 Counter examples/counter-js/counter.spec.md
-  200 trace(s), 476 action(s), 676 observation(s) conform
+$ spec-md model test examples/pizza-ts
+✓ MOD-1 Orders examples/pizza-ts/specs/order.spec.md
+  1000 trace(s), 3646 action(s), 4646 observation(s) conform
 
 ✓ 1 model(s) conform, 0 failure(s)
 ```
@@ -101,6 +101,11 @@ A failure is reported as the minimal counterexample — the shortest action
 sequence that breaks the contract — together with the `FR-N` / `AC-N` rows
 involved and the two ways to resolve it. Specs with no model are untouched by
 these commands.
+
+The CLI itself still runs on Node ≥ 18. An adapter only needs whatever Node can
+import: a plain `.mjs` module works anywhere, while an adapter that imports
+TypeScript sources directly needs a Node that strips types (≥ 22.18) — otherwise
+point it at compiled output.
 
 The language, the adapter contract, the bounds, and the limits:
 [MODELS.md](https://github.com/rosenjcb/spec.md/blob/main/MODELS.md).

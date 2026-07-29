@@ -24,18 +24,25 @@ export const DEFAULTS = {
   maxStates: 4000,
   maxInits: 8,
   maxArgs: 3,
-  maxTraces: 200,
+  maxTraces: 1000,
   maxArgTuples: 64,
 };
 
-/** Add every derived variable to a plain state object. */
+/**
+ * Add every derived variable to a plain state object. Derived expressions see
+ * the model's enum symbols and any earlier derived value, but the result holds
+ * only real state — conformance compares against exactly these keys.
+ */
 export function withDerived(model, vars) {
   if (!model.derived.length) return vars;
-  const scope = { ...vars };
+  const state = { ...vars };
+  const scope = { ...model.constants, ...vars };
   for (const derived of model.derived) {
-    scope[derived.name] = evalExpr(derived.expr.ast, { vars: scope });
+    const value = evalExpr(derived.expr.ast, { vars: scope });
+    state[derived.name] = value;
+    scope[derived.name] = value;
   }
-  return scope;
+  return state;
 }
 
 /**

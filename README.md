@@ -161,7 +161,7 @@ npx @rosenjcb/spec-md new orders     # scaffold orders.spec.md from the template
 npx @rosenjcb/spec-md check
 ```
 
-A complete, runnable end-to-end example — spec, code, tagged unit tests, tagged `.http` integration requests, and a signed review record — lives in [`examples/pizza-ts`](./examples/pizza-ts).
+A complete, runnable end-to-end example — spec, code, tagged unit tests, tagged `.http` integration requests, a signed review record, and a conformance-tested behavioral model — lives in [`examples/pizza-ts`](./examples/pizza-ts).
 
 ---
 
@@ -368,72 +368,86 @@ The full convention, including `.http` integration requests: **[TESTING.md](./TE
 
 A `TC-N` row proves one example. A test suite proves the examples someone thought to write — which means an implementation change can quietly redefine what the product does and still ship green. **Tests protect examples. Models protect behavior.**
 
-When behavior is worth protecting mechanically, a spec gains a `### Behavioral Model` section: an executable statement of the contract, in a fenced ` ```spec-model ` block. The state transition model is the primary artifact; invariants (`INV-N`) and behavioral properties (`BP-N`) are additional claims about it.
+When behavior is worth protecting mechanically, a spec gains a `### Behavioral Model` section: an executable statement of the contract, in a fenced ` ```spec-model ` block. The state transition model is the primary artifact; invariants (`INV-N`) and behavioral properties (`BP-N`) are additional claims about it. From the [pizza-ts spec](./examples/pizza-ts/specs/order.spec.md):
 
 ````md
 ### Behavioral Model
 
 ```spec-model
-model: MOD-1 Counter
-adapter: ./model/counter.adapter.mjs
+model: MOD-1 Orders
+adapter: ../model/orders.adapter.mjs
 
 state:
-  count: integer in 0..100 = 0
+  status: string in [draft, created] = draft
+  lineCount: integer in 0..3 = 0
+  total: integer in 0..20000 = 0
+  basePrice: integer = 900
 
-AC-1 Increment:
-  requirement: FR-1
-  count' = count + 1
-
-AC-2 Decrement:
+AC-1 AddItem(sizeMultiplier: number in [1, 1.3, 1.6], quantity: integer in 1..2):
   requirement: FR-2
-  requires: count > 0
-  count' = count - 1
+  requires: status = draft
+  lineCount' = lineCount + 1
+  total' = total + round(basePrice * sizeMultiplier) * quantity
 
-INV-1 The counter is never negative:
-  requirement: FR-2
-  check: count >= 0
-
-BP-1 Increment changes the counter by exactly one:
+AC-2 PlaceOrder:
   requirement: FR-1
-  check: after AC-1, count = count@pre + 1
+  requires: status = draft and lineCount > 0
+  status' = created
+
+INV-1 A placed order has at least one priced line:
+  requirement: FR-1
+  check: status = created implies lineCount > 0
+
+BP-1 Each line adds its rounded unit price times quantity to the total:
+  requirement: FR-2
+  check: after AC-1, total = total@pre + round(basePrice * sizeMultiplier) * quantity
 ```
 ````
 
-Two commands act on it:
+The state is an **abstraction** — three scalars and a menu price; the array of line items never appears. Two commands act on it:
 
 - **`spec-md model check`** explores the model's own state and action space breadth-first, checking every invariant and property along the way. That is the half that finds scenarios nobody thought to name as a property — and because the search is breadth-first, the counterexample it reports is the shortest one.
-- **`spec-md model test`** is **conformance**: it puts the model and the implementation in corresponding initial states, performs each generated action on both, observes the implementation through an [adapter](./MODELS.md#the-adapter-contract), and compares. A change that is locally reasonable but globally inconsistent with the contract fails here:
+- **`spec-md model test`** is **conformance**: it puts the model and the implementation in corresponding initial states, performs each generated action on both, observes the implementation through an [adapter](./MODELS.md#the-adapter-contract), and compares. Every order shape the model can build within its bounds gets replayed against the real `OrderStore`:
+
+```text
+✓ MOD-1 Orders examples/pizza-ts/specs/order.spec.md
+  1000 trace(s), 3646 action(s), 4646 observation(s) conform
+```
+
+Now cap the order total — a change no reviewer would blink at, and one every unit test survives, since `TC-4`'s order comes to 4420:
 
 ```diff
- function increment() {
--  count += 1;
-+  count = Math.min(count + 1, 100);
- }
+-const total = items.reduce((sum, item) => sum + item.lineTotal, 0);
++const total = Math.min(items.reduce((sum, item) => sum + item.lineTotal, 0), 5000);
 ```
 
 ```text
 Behavioral conformance failed
 
-Spec: Counter
-Model: MOD-1 Counter
+Spec: Pizza Orders
+Model: MOD-1 Orders
 
 Minimal counterexample:
-  Initial state: count = 100, display = 100
-  Action: AC-1 Increment
+  Initial state: status = "draft", lineCount = 0, total = 0, basePrice = 900, placed = false
+  Trace:
+    1. AC-1 AddItem(sizeMultiplier = 1.3, quantity = 2) → lineCount = 1, total = 2340
+    2. AC-1 AddItem(sizeMultiplier = 1.6, quantity = 2) → lineCount = 2, total = 5220
+    3. AC-2 PlaceOrder → status = "created", total = 5220
 
 Expected:
-  count = 101
+  total = 5220
 
 Observed:
-  count = 100
+  total = 5000
 
 Relevant contract:
-  FR-1: Incrementing increases the counter by one
-  AC-1: count' = count + 1
+  FR-2: Compute line and order totals from menu price and size multiplier
+  AC-1: total' = total + round(basePrice * sizeMultiplier) * quantity
+  BP-1: after AC-1, total = total@pre + round(basePrice * sizeMultiplier) * quantity
 
 Possible resolutions:
   - Restore implementation behavior so it still follows AC-1
-  - Update FR-1 and AC-1 to define the new behavior, then add the QA Test Case that pins the boundary
+  - Update FR-2 and AC-1 to define the new behavior, then add the QA Test Case that pins the boundary
 ```
 
 The point is not the failure — it is that the failure **forces an explicit decision**. Either the implementation goes back to following the model, or the requirement changes, which forces the model to change, which forces a new `TC-N` for the boundary. Nothing silently redefines the product.
@@ -441,12 +455,12 @@ The point is not the failure — it is that the failure **forces an explicit dec
 The ids extend the same traceability chain the format already has, and `spec-md lint` keeps them honest:
 
 ```text
-FR-1 → BP-1 → AC-1 → TC-1 → [TC-1] test → implementation
+FR-2 → BP-1 → AC-1 → TC-4 → [TC-4] test → implementation
 ```
 
-Because the layer above the model — human intent ↔ model — is semantic rather than formal, `spec-md lint` treats it as a judgment call and only *surfaces* likely drift: a requirement that names a maximum the model does not guard, an `[UPDATED]` row whose model elements may be stale, a model element citing no requirement. Warnings, never proofs.
+Because the layer above the model — human intent ↔ model — is semantic rather than formal, `spec-md lint` treats it as a judgment call and only *surfaces* likely drift: a requirement that names a cap no guard mentions, an `[UPDATED]` row whose model elements may be stale, a model element citing no requirement. Warnings, never proofs.
 
-The model layer is entirely optional; a spec without one behaves exactly as before. The complete language, adapter contract, bounds, and limits: **[MODELS.md](./MODELS.md)**. A runnable example — including a bug the unit tests miss and the model catches: [`examples/counter-js`](./examples/counter-js).
+The model layer is entirely optional; a spec without one behaves exactly as before. The complete language, adapter contract, bounds, and limits: **[MODELS.md](./MODELS.md)**. The worked example, including the regression above end to end: [`examples/pizza-ts`](./examples/pizza-ts).
 
 ---
 
@@ -540,8 +554,7 @@ Beyond describing a feature, a spec is a shared model of the system that connect
 | [`cli/`](./cli) | The `@rosenjcb/spec-md` CLI (npm). |
 | [`action.yml`](./action.yml) | The GitHub Action wrapping `spec-md check`. |
 | [`install.sh`](./install.sh) / [`install.ps1`](./install.ps1) | One-line installers for every agent surface. |
-| [`examples/pizza-ts`](./examples/pizza-ts) | Runnable reference: spec + review record + tagged unit tests + tagged `.http` requests + a behavioral model. |
-| [`examples/counter-js`](./examples/counter-js) | Runnable reference for the model layer: `MOD-1`, an adapter, and conformance testing, with zero dependencies. |
+| [`examples/pizza-ts`](./examples/pizza-ts) | Runnable reference: spec + review record + tagged unit tests + tagged `.http` requests + a behavioral model with a conformance adapter. |
 | [`TESTING.md`](./TESTING.md) / [`MODELS.md`](./MODELS.md) / [`REVIEW.md`](./REVIEW.md) / [`INSTALL.md`](./INSTALL.md) | The companion conventions in depth. |
 
 ---
@@ -581,7 +594,7 @@ The [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-cat
 - [MODELS.md](./MODELS.md) — the executable behavioral model layer: the `spec-model` language, exploration, conformance testing through an adapter, the drift heuristics, and the bounds and limits of all three.
 - [SKILL.md](./SKILL.md) — the full authoring procedure agents follow: triage, context gathering, section-by-section writing rules, and the id-hygiene rules for updates.
 - [INSTALL.md](./INSTALL.md) — every way to get spec.md into a project, per agent, flag by flag.
-- [examples/pizza-ts](./examples/pizza-ts) — a runnable reference implementation generated from a single OKF spec, with tagged unit tests and `.http` integration requests that trace back to it.
+- [examples/pizza-ts](./examples/pizza-ts) — a runnable reference implementation generated from a single OKF spec, with tagged unit tests, `.http` integration requests, and an executable behavioral model conformance-tested against the code.
 
 ### Appendix: References
 

@@ -35,7 +35,7 @@ import { lintSpec } from "../lib/lint.js";
 const here = dirname(fileURLToPath(import.meta.url));
 const bin = resolve(here, "../bin/spec-md.js");
 const exampleSpec = resolve(here, "../../examples/pizza-ts");
-const counterExample = resolve(here, "../../examples/counter-js");
+
 
 let passed = 0;
 let failed = 0;
@@ -754,12 +754,13 @@ test("--no-drift silences the heuristics", () => {
 });
 
 console.log("\nmodel CLI");
-test("model check explores the counter example clean", () => {
-  const { code, out } = run(["model", "check", counterExample]);
+test("model check explores the pizza example clean", () => {
+  const { code, out } = run(["model", "check", exampleSpec]);
   assert.equal(code, 0, out);
-  assert.match(out, /MOD-1 Counter/);
-  assert.match(out, /4\/4 properties exercised/);
+  assert.match(out, /MOD-1 Orders/);
+  assert.match(out, /2\/2 properties exercised/);
   assert.match(out, /0 violation\(s\)/);
+  assert.match(out, /at the domain frontier/);
 });
 
 test("model check reports a violation as a minimal counterexample", () => {
@@ -773,17 +774,17 @@ test("model check reports a violation as a minimal counterexample", () => {
 });
 
 test("model list prints the contract with its FR traces", () => {
-  const { code, out } = run(["model", "list", counterExample]);
+  const { code, out } = run(["model", "list", exampleSpec]);
   assert.equal(code, 0, out);
-  assert.match(out, /AC-3 Set\(value: integer in 0\.\.100\)/);
-  assert.match(out, /BP-1 .*after AC-1, count = count@pre \+ 1/);
-  assert.match(out, /→ FR-1/);
+  assert.match(out, /AC-1 AddItem\(sizeMultiplier: number in \[1, 1\.3, 1\.6\]/);
+  assert.match(out, /BP-1 .*after AC-1, total = total@pre \+/);
+  assert.match(out, /→ FR-2/);
 });
 
 test("model check defaults to check and says so when there is nothing to explore", () => {
-  const plain = run(["model", counterExample]);
+  const plain = run(["model", exampleSpec]);
   assert.equal(plain.code, 0, plain.out);
-  assert.match(plain.out, /MOD-1 Counter/);
+  assert.match(plain.out, /MOD-1 Orders/);
   withTempSpec(
     `---\ntype: Spec\ntitle: No model\n---\n### Functional Requirements\n| ID | Requirement |\n|----|----|\n| FR-1 | x |\n### QA Test Cases\n| Test ID | Requirement | Scenario | Expected Outcome |\n|--|--|--|--|\n| TC-1 | FR-1 | x | y |\n`,
     (dir) => {
@@ -795,16 +796,16 @@ test("model check defaults to check and says so when there is nothing to explore
 });
 
 test("model bounds flags are validated", () => {
-  const { code, out } = run(["model", "check", "--depth", "nope", counterExample]);
+  const { code, out } = run(["model", "check", "--depth", "nope", exampleSpec]);
   assert.equal(code, 2, out);
   assert.match(out, /--depth must be a non-negative integer/);
 });
 
 test("check runs the model step and --no-model skips it", () => {
-  const full = run(["check", counterExample]);
+  const full = run(["check", exampleSpec]);
   assert.equal(full.code, 0, full.out);
   assert.match(full.out, /Checking behavioral models/);
-  const skipped = run(["check", "--no-model", counterExample]);
+  const skipped = run(["check", "--no-model", exampleSpec]);
   assert.equal(skipped.code, 0, skipped.out);
   assert.doesNotMatch(skipped.out, /Checking behavioral models/);
 });
@@ -827,66 +828,87 @@ test("new --model scaffolds a model that lints and explores clean", () => {
 });
 
 console.log("\nconformance");
-atest("the counter example conforms to its model", async () => {
-  const { spec } = lintSpec(join(counterExample, "counter.spec.md"));
+atest("the pizza example conforms to its model", async () => {
+  const { spec } = lintSpec(join(exampleSpec, "specs/order.spec.md"));
   const model = spec.models[0];
   const { adapter, error } = await loadAdapter(spec.filePath, model);
   assert.ok(adapter, error);
   const report = await runConformance(model, adapter, { depth: 2, maxTraces: 60 });
   assert.equal(report.failure, null, JSON.stringify(report.failure));
   assert.ok(report.stepsRun > 0);
+  // `total` is only observable once an order is priced, but some trace places one.
   assert.deepEqual(report.unobserved, [], "every model variable is observed");
 });
 
-atest("conformance reports the minimal counterexample for a drifted implementation", async () => {
+/** A copy of the pizza example whose implementation can be patched. */
+async function withPatchedExample(patch, fn) {
   await withTempDir(async (dir) => {
-    cpSync(counterExample, dir, { recursive: true });
-    // Locally reasonable, globally inconsistent: `reset` forgets the cache
-    // `increment` reads, so reset-then-increment is wrong. No unit test does that.
-    writeFileSync(
-      join(dir, "src/counter.mjs"),
-      `export function createCounter({ initialCount = 0 } = {}) {
-  let count = initialCount;
-  let cached = initialCount;
-  return {
-    increment() { count = cached + 1; cached = count; },
-    decrement() { if (count > 0) { count -= 1; cached = count; } },
-    set(value) { count = value; cached = value; },
-    reset() { count = 0; },
-    value() { return count; },
-    display() { return String(count); },
-  };
-}
-`,
-    );
-    const { code, out } = run(["model", "test", dir]);
-    assert.equal(code, 1, out);
-    assert.match(out, /Behavioral conformance failed/);
-    assert.match(out, /1\. AC-4 Reset/);
-    assert.match(out, /2\. AC-1 Increment/);
-    assert.match(out, /Relevant contract:/);
-    assert.match(out, /Restore implementation behavior/);
+    cpSync(exampleSpec, dir, { recursive: true });
+    const file = join(dir, "src/orders/orders.ts");
+    const source = readFileSync(file, "utf8");
+    const patched = patch(source);
+    assert.notEqual(patched, source, "the patch must actually change the implementation");
+    writeFileSync(file, patched);
+    await fn(dir);
   });
+}
+
+atest("conformance reports the minimal counterexample for a drifted implementation", async () => {
+  // Capping the order total is the kind of change no reviewer blinks at, and no
+  // unit test notices: TC-4's order comes to 4420, comfortably under the cap.
+  await withPatchedExample(
+    (source) =>
+      source.replace(
+        "const total = items.reduce((sum, item) => sum + item.lineTotal, 0);",
+        "const total = Math.min(items.reduce((sum, item) => sum + item.lineTotal, 0), 5000);",
+      ),
+    (dir) => {
+      const { code, out } = run(["model", "test", dir]);
+      assert.equal(code, 1, out);
+      assert.match(out, /Behavioral conformance failed/);
+      assert.match(out, /AC-1 AddItem/);
+      assert.match(out, /AC-2 PlaceOrder/);
+      assert.match(out, /total = 5000/);
+      // The wrong value is owned by AC-1, not by the action that surfaced it.
+      assert.match(out, /Relevant contract:[\s\S]*AC-1: total' =/);
+      assert.match(out, /Restore implementation behavior so it still follows AC-1/);
+    },
+  );
+});
+
+atest("conformance compares what was persisted, not what create returned", async () => {
+  // An off-by-one in the stored order is invisible to a caller that only reads
+  // the return value; `observe` reads it back out of the store.
+  await withPatchedExample(
+    (source) => source.replace("items,\n      total,", "items,\n      total: total + 1,"),
+    (dir) => {
+      const { code, out } = run(["model", "test", dir]);
+      assert.equal(code, 1, out);
+      assert.match(out, /Behavioral conformance failed/);
+    },
+  );
 });
 
 atest("an incomplete adapter is reported, not silently skipped", async () => {
   await withTempDir(async (dir) => {
-    cpSync(counterExample, dir, { recursive: true });
+    cpSync(exampleSpec, dir, { recursive: true });
     writeFileSync(
-      join(dir, "model/counter.adapter.mjs"),
+      join(dir, "model/orders.adapter.mjs"),
       `export default { init: () => ({}), actions: {}, observe: () => ({}) };\n`,
     );
     const { code, out } = run(["model", "test", dir]);
     assert.equal(code, 1, out);
-    assert.match(out, /no handler for AC-1, AC-2, AC-3, AC-4/);
+    assert.match(out, /no handler for AC-1, AC-2/);
   });
 });
 
 atest("a model with no adapter is skipped by model test, not failed", async () => {
-  const { code, out } = run(["model", "test", exampleSpec]);
-  assert.equal(code, 0, out);
-  assert.match(out, /no `adapter` declared/);
-  assert.match(out, /1 without an adapter/);
+  await withModelSpec(MODEL_DOC.replace("adapter: ./counter.adapter.mjs\n", ""), async (dir) => {
+    const { code, out } = run(["model", "test", dir]);
+    assert.equal(code, 0, out);
+    assert.match(out, /no `adapter` declared/);
+    assert.match(out, /1 without an adapter/);
+  });
 });
 
 await runAsyncTests();

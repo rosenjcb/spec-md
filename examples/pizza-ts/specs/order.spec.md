@@ -80,52 +80,60 @@ cases. Here `FR-2` (pricing) owns `TC-2` through `TC-4`, and `FR-4`
 
 ### Behavioral Model
 
-An abstraction of the ordering lifecycle, not a copy of it: the model tracks how
-many lines have been priced, the running total in cents, and whether the order
-has been placed. That is enough to state the contract mechanically — in
-particular `FR-3`, immutability after creation, which `INV-1` turns into a claim
-the explorer checks against every reachable state rather than the one case
-`TC-5` happens to try.
+The executable contract for the ordering lifecycle. It is an **abstraction** of
+the implementation, not a copy: the model tracks how many lines have been priced,
+the running total in cents, and whether the order has been placed. `basePrice` is
+the Margherita's `small` price from the menu (see Definitions), which is what
+makes `BP-1` state the pricing rule of `FR-2` rather than restate it.
 
 The domains (`0..3` lines, `0..20000` cents) bound the exploration, not the
-system. This model declares no `adapter`, so `spec-md model check` verifies it
-while `spec-md model test` reports it as unbridged; the
-[counter-js example](../../counter-js) shows the conformance side.
+system. `spec-md model check` walks the model on its own; `spec-md model test`
+replays the same action sequences against `OrderStore` through
+[`../model/orders.adapter.mjs`](../model/orders.adapter.mjs) and compares every
+observation with the model's prediction.
+
+Two parts of this spec stay outside the model on purpose. `FR-4` (rejecting
+invalid requests) is a guard on the boundary rather than a state transition, and
+the aliasing half of `FR-3` — mutating a returned object — is not expressible in
+a state model. `TC-5` through `TC-8` remain the proof for both.
 
 ```spec-model
 model: MOD-1 Orders
+adapter: ../model/orders.adapter.mjs
 
 state:
+  status: string in [draft, created] = draft
   lineCount: integer in 0..3 = 0
   total: integer in 0..20000 = 0
-  status: string in [draft, created] = draft
-  placedTotal: integer in 0..20000 = 0
+  basePrice: integer = 900
 
-AC-1 AddItem(unitPrice: integer in 900..1200, quantity: integer in 1..3):
+derived:
+  placed: status = created
+
+AC-1 AddItem(sizeMultiplier: number in [1, 1.3, 1.6], quantity: integer in 1..2):
   requirement: FR-2
   requires: status = draft
   lineCount' = lineCount + 1
-  total' = total + unitPrice * quantity
+  total' = total + round(basePrice * sizeMultiplier) * quantity
 
 AC-2 PlaceOrder:
   requirement: FR-1
   requires: status = draft and lineCount > 0
   status' = created
-  placedTotal' = total
 
-INV-1 A placed order never changes:
-  requirement: FR-3
-  check: status = created implies total = placedTotal
+INV-1 A placed order has at least one priced line:
+  requirement: FR-1
+  check: status = created implies lineCount > 0
 
-INV-2 The total is never negative:
+INV-2 Lines and a total appear together:
   requirement: FR-2
-  check: total >= 0
+  check: (lineCount = 0) = (total = 0)
 
-BP-1 Each line adds unit price times quantity to the total:
+BP-1 Each line adds its rounded unit price times quantity to the total:
   requirement: FR-2
-  check: after AC-1, total = total@pre + unitPrice * quantity
+  check: after AC-1, total = total@pre + round(basePrice * sizeMultiplier) * quantity
 
 BP-2 Placing an order does not change what was priced:
-  requirement: FR-1
+  requirement: FR-3
   check: after AC-2, total = total@pre and lineCount = lineCount@pre
 ```

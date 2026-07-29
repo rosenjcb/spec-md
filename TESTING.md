@@ -144,7 +144,7 @@ Tests protect examples. Models protect behavior. The two are complements, and a
 `TC-N` row may cite the model element it exercises:
 
 ```md
-| TC-2 | FR-1, AC-1 | Counter at 100, incremented | Counter is 101 |
+| TC-4 | FR-2, AC-1 | Order with several line items | Total sums each line |
 ```
 
 The layer is optional and fully specified in **[MODELS.md](./MODELS.md)**.
@@ -157,9 +157,8 @@ The layer is optional and fully specified in **[MODELS.md](./MODELS.md)**.
 order, and (where a spec has one) the behavioral model. The join key is the
 bracketed `[TC-N]` prefix — see above.
 
-Worked examples: [`examples/pizza-ts`](./examples/pizza-ts) —
+Worked example: [`examples/pizza-ts`](./examples/pizza-ts) —
 [`order.spec.md`](./examples/pizza-ts/specs/order.spec.md) with `TC-1..TC-9`,
 tagged unit tests in `test/`, tagged `.http` requests in `http/`, and a
-behavioral model over the ordering lifecycle; and
-[`examples/counter-js`](./examples/counter-js) for the model and conformance
-side end to end.
+behavioral model over the ordering lifecycle conformance-tested through
+`model/orders.adapter.mjs`.

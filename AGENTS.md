@@ -235,28 +235,32 @@ additional claims about it.
 
 ````md
 ```spec-model
-model: MOD-1 Counter
-adapter: ./model/counter.adapter.mjs
+model: MOD-1 Orders
+adapter: ../model/orders.adapter.mjs
 
 state:
-  count: integer in 0..100 = 0
+  status: string in [draft, created] = draft
+  lineCount: integer in 0..3 = 0
+  total: integer in 0..20000 = 0
 
-AC-1 Increment:
-  requirement: FR-1
-  count' = count + 1
-
-AC-2 Decrement:
+AC-1 AddItem(unitPrice: integer in 900..1440, quantity: integer in 1..2):
   requirement: FR-2
-  requires: count > 0
-  count' = count - 1
+  requires: status = draft
+  lineCount' = lineCount + 1
+  total' = total + unitPrice * quantity
 
-INV-1 The counter is never negative:
-  requirement: FR-2
-  check: count >= 0
-
-BP-1 Increment changes the counter by exactly one:
+AC-2 PlaceOrder:
   requirement: FR-1
-  check: after AC-1, count = count@pre + 1
+  requires: status = draft and lineCount > 0
+  status' = created
+
+INV-1 A placed order has at least one priced line:
+  requirement: FR-1
+  check: status = created implies lineCount > 0
+
+BP-1 Each line adds unit price times quantity to the total:
+  requirement: FR-2
+  check: after AC-1, total = total@pre + unitPrice * quantity
 ```
 ````
 
@@ -265,6 +269,9 @@ Rules that matter:
 - **Model the abstraction, not the data structure.** State is scalar
   (`integer`, `number`, `boolean`, `string`) — model `lineCount` and `total`,
   never the array of items. Pick the smallest state that still says something.
+- **Only model what the implementation can be driven through and observed at.**
+  An action needs a real operation behind it and a way to read the result back;
+  a value that is not observable yet is one the adapter simply omits.
 - **One `AC-N` per operation**, each citing the `FR-N` it implements
   (`requirement:`). Every right-hand side (`count' = …`) reads the pre-state.
   Put preconditions in `requires:`; a requirement that says "reject", "must
@@ -275,6 +282,11 @@ Rules that matter:
 - **Write invariants for what must always hold**, properties for the guarantees
   worth naming. Do not try to enumerate every behavior as a `BP-N`: exploration
   covers the combinations, so a missing property is not a hole in the contract.
+  Invariants do double duty: they also decide which generated initial states are
+  valid, so a tightly coupled state needs them to stay coherent.
+- **Say what the model leaves out.** Input validation and caller-side aliasing
+  are not state transitions; note in the section that those `FR-N` stay proven
+  by their `TC-N` rows rather than pretending the model covers them.
 - **Derive from the code**, exactly as for `FR-N`: if the implementation
   branches on it, the model should guard on it.
 - **Add an `adapter:`** only when the implementation exists and can be driven

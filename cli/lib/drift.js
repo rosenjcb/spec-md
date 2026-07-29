@@ -83,16 +83,25 @@ export function driftWarnings(spec, models) {
       );
     }
 
-    // Bounds and rejections are guards. If none of the actions has one, say so.
-    if (actions.length && !actions.some((action) => action.guard)) {
+    // Bounds and rejections are guards. A guard on an unrelated condition does
+    // not count when the requirement names a specific limit, so check the
+    // numbers first and only fall back to "has any guard at all".
+    const guards = actions.filter((a) => a.guard).map((a) => a.guard.src);
+    const guardNumbers = new Set(guards.join(" ; ").match(NUMBER_RE) || []);
+    const guarded = numbers.length
+      ? numbers.some((n) => guardNumbers.has(n))
+      : guards.length > 0;
+    if (actions.length && !guarded) {
       const bound = BOUND_WORDS.exec(text);
       const reject = REJECT_WORDS.exec(text);
       const phrase = bound?.[0] || reject?.[0];
       if (phrase) {
+        const ids = actions.map((a) => a.id).join(", ");
+        const missing = numbers.length
+          ? `no guard on ${ids} mentions ${numbers.join(", ")}`
+          : `${ids} declare${actions.length === 1 ? "s" : ""} no \`requires:\` guard`;
         warn(
-          `Potential requirement/model drift: ${fr.id} constrains behavior ("${phrase}"), but ` +
-            `${actions.map((a) => a.id).join(", ")} declare${actions.length === 1 ? "s" : ""} ` +
-            "no `requires:` guard",
+          `Potential requirement/model drift: ${fr.id} constrains behavior ("${phrase}"), but ${missing}`,
           fr.line,
         );
       }

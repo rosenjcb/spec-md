@@ -14,6 +14,12 @@ forces an explicit decision: fix the implementation, or update the spec.
 The model layer is **entirely optional**. A `*.spec.md` with no
 `### Behavioral Model` section behaves exactly as it always has.
 
+Everything below is drawn from the worked example in
+[`examples/pizza-ts`](./examples/pizza-ts): the model lives in
+[`specs/order.spec.md`](./examples/pizza-ts/specs/order.spec.md) and is driven
+against the real implementation through
+[`model/orders.adapter.mjs`](./examples/pizza-ts/model/orders.adapter.mjs).
+
 ## Contents
 
 - [The four kinds of drift](#the-four-kinds-of-drift)
@@ -89,19 +95,20 @@ The model — not the list of properties — is the source of truth. Properties 
 
 ```text
 State:
-  count: integer
+  lineCount, total, status
 
-Increment:
-  count' = count + 1
+AddItem:
+  lineCount' = lineCount + 1
+  total'     = total + unitPrice * quantity
 
-Decrement:
-  count' = count - 1
+PlaceOrder:
+  status' = created
 ```
 
 That matters because the transition model generates broad behavior through
-exploration. Forgetting to name a property (`BP-4`) is not catastrophic: the
-model still defines what each operation does, and the checker still walks every
-state/action combination within its bounds.
+exploration. Forgetting to name a property is not catastrophic: the model still
+defines what each operation does, and the checker still walks every state/action
+combination within its bounds.
 
 In spec.md, that model lives in a fenced ` ```spec-model ` block inside the
 spec's `### Behavioral Model` section:
@@ -110,35 +117,44 @@ spec's `### Behavioral Model` section:
 ### Behavioral Model
 
 ```spec-model
-model: MOD-1 Counter
-adapter: ./model/counter.adapter.mjs
+model: MOD-1 Orders
+adapter: ../model/orders.adapter.mjs
 
 state:
-  count: integer in 0..100 = 0
+  status: string in [draft, created] = draft
+  lineCount: integer in 0..3 = 0
+  total: integer in 0..20000 = 0
+  basePrice: integer = 900
 
 derived:
-  display: count
+  placed: status = created
 
-AC-1 Increment:
-  requirement: FR-1
-  count' = count + 1
-
-AC-2 Decrement:
+AC-1 AddItem(sizeMultiplier: number in [1, 1.3, 1.6], quantity: integer in 1..2):
   requirement: FR-2
-  requires: count > 0
-  count' = count - 1
+  requires: status = draft
+  lineCount' = lineCount + 1
+  total' = total + round(basePrice * sizeMultiplier) * quantity
 
-INV-1 The display mirrors the counter:
-  requirement: FR-5
-  check: display = count
-
-BP-1 Increment changes the counter by exactly one:
+AC-2 PlaceOrder:
   requirement: FR-1
-  check: after AC-1, count = count@pre + 1
+  requires: status = draft and lineCount > 0
+  status' = created
 
-BP-2 Increment and Decrement are inverses:
-  requirement: FR-1, FR-2
-  check: AC-1 then AC-2 preserves count
+INV-1 A placed order has at least one priced line:
+  requirement: FR-1
+  check: status = created implies lineCount > 0
+
+INV-2 Lines and a total appear together:
+  requirement: FR-2
+  check: (lineCount = 0) = (total = 0)
+
+BP-1 Each line adds its rounded unit price times quantity to the total:
+  requirement: FR-2
+  check: after AC-1, total = total@pre + round(basePrice * sizeMultiplier) * quantity
+
+BP-2 Placing an order does not change what was priced:
+  requirement: FR-3
+  check: after AC-2, total = total@pre and lineCount = lineCount@pre
 ```
 ````
 
@@ -147,11 +163,6 @@ Ids follow the same hygiene as `FR-N` and `TC-N`: `MOD-1..MOD-n`, `AC-1..AC-n`,
 `spec-md lint` enforces it. `AC`/`INV`/`BP` numbering runs across all of a spec's
 model blocks, so an id is unambiguous anywhere in the spec.
 
-A working example: [`examples/counter-js`](./examples/counter-js) (with an
-adapter and conformance testing) and
-[`examples/pizza-ts`](./examples/pizza-ts/specs/order.spec.md) (a model over a
-richer domain).
-
 ---
 
 ## The language
@@ -159,8 +170,8 @@ richer domain).
 ### `model:` and `adapter:`
 
 ```text
-model: MOD-1 Counter                        # id and name; defaults to MOD-<block index>
-adapter: ./model/counter.adapter.mjs        # spec-relative; required by `model test`
+model: MOD-1 Orders                         # id and name; defaults to MOD-<block index>
+adapter: ../model/orders.adapter.mjs        # spec-relative; required by `model test`
 ```
 
 ### `state:`
@@ -169,21 +180,24 @@ One declaration per line, `name: type [in domain] [= default]`.
 
 ```text
 state:
-  count: integer in 0..100 = 0
-  total: number = 0
   status: string in [draft, created] = draft
+  lineCount: integer in 0..3 = 0
+  total: integer in 0..20000 = 0
+  basePrice: integer = 900
   paid: boolean = false
 ```
 
 Types are `integer`, `number`, `boolean`, `string`. The **state is an
 abstraction** of the implementation, not a copy of it — model what the contract
-is about, at the smallest scale that still says something.
+is about, at the smallest scale that still says something. Above, an order is
+three scalars and a menu price; the array of line items never appears.
 
 `in …` declares a **domain**: `lo..hi` for numbers, `[a, b, c]` for an
 enumeration. Domains bound the *search* (see [Bounds](#bounds)); they are not
 requirements. Values of a string enum become symbols you can write bare in
 expressions (`status = created`), so a typo is an error rather than a silent
-mismatch.
+mismatch. A variable with no domain — like `basePrice` — is a constant the model
+carries: never varied, and still checked against the implementation.
 
 ### `derived:`
 
@@ -192,22 +206,24 @@ system stores.
 
 ```text
 derived:
-  display: count
+  placed: status = created
   average: total / max(1, lineCount)
 ```
 
 Derived variables are recomputed after every transition, may be used in guards,
 invariants, and properties, and cannot be assigned by an action. They are also
-compared during conformance, which is what makes `display = count` more than a
-tautology: the model computes it, the implementation renders it.
+compared during conformance, which is where they earn their place: the model
+computes `placed` from `status`, while the implementation answers it by whether
+an order exists.
 
 ### `AC-N` — actions
 
 ```text
-AC-3 Set(value: integer in 0..100):
-  requirement: FR-3
+AC-1 AddItem(sizeMultiplier: number in [1, 1.3, 1.6], quantity: integer in 1..2):
+  requirement: FR-2
   requires: status = draft
-  count' = value
+  lineCount' = lineCount + 1
+  total' = total + round(basePrice * sizeMultiplier) * quantity
 ```
 
 | Line | Meaning |
@@ -224,13 +240,14 @@ An action needs at least one update.
 A claim that must hold in **every** state the explorer reaches.
 
 ```text
-INV-1 A placed order never changes:
-  requirement: FR-3
-  check: status = created implies total = placedTotal
+INV-1 A placed order has at least one priced line:
+  requirement: FR-1
+  check: status = created implies lineCount > 0
 ```
 
 Invariants also define which generated initial states are valid: a candidate
-that breaks one is not a legitimate place to start, so it is skipped.
+that breaks one is not a legitimate place to start, so it is skipped. That
+matters more than it sounds — see [Bounds](#bounds).
 
 ### `BP-N` — behavioral properties
 
@@ -243,9 +260,9 @@ Named claims about the model, in one of three forms:
 | `always <expr>` | Holds in every state (an invariant, stated as a property). |
 
 ```text
-BP-1 Increment changes the counter by exactly one:
-  requirement: FR-1
-  check: after AC-1, count = count@pre + 1
+BP-1 Each line adds its rounded unit price times quantity to the total:
+  requirement: FR-2
+  check: after AC-1, total = total@pre + round(basePrice * sizeMultiplier) * quantity
 ```
 
 A property that is never *triggered* within the configured bounds is reported —
@@ -264,13 +281,13 @@ so checking a spec never means running code the spec smuggled in.
 A `TC-N` row may cite the model element it exercises alongside its `FR-N`:
 
 ```md
-| TC-2 | FR-1, AC-1 | Counter at 100, incremented | Counter is 101 |
+| TC-4 | FR-2, AC-1 | Order with several line items | Total sums each line |
 ```
 
 That completes the chain the ids trace:
 
 ```text
-FR-1 → BP-1 → AC-1 → TC-1 → [TC-1] test → implementation
+FR-2 → BP-1 → AC-1 → TC-4 → [TC-4] test → implementation
 ```
 
 `spec-md lint` errors on a `TC-N` citing an `AC`/`BP`/`INV`/`MOD` the model does
@@ -288,25 +305,25 @@ Behavioral exploration: Did we walk every state/action combination in bounds?
 `spec-md model check` reports both:
 
 ```text
-✓ MOD-1 Counter examples/counter-js/counter.spec.md
-  explored 20 state(s), 89 transition(s) to depth 4 · 4/4 properties exercised · 1 at the domain frontier
+✓ MOD-1 Orders examples/pizza-ts/specs/order.spec.md
+  explored 171 state(s), 405 transition(s) to depth 4 · 2/2 properties exercised · 56 at the domain frontier
 ```
 
-Exploration is the half that finds scenarios nobody thought to name. When it
-finds one, the search order guarantees the report is the **shortest** trace that
-breaks the claim:
+Exploration is the half that finds scenarios nobody thought to name. Add a
+discount action and forget that a discount can outrun the total, and it says so —
+in the shortest trace that breaks the claim:
 
 ```text
 Invariant violated
 
 Spec: Pizza Orders
 Model: MOD-1 Orders
-Invariant: INV-2 The total is never negative — total >= 0
+Invariant: INV-2 Lines and a total appear together — (lineCount = 0) = (total = 0)
 
 Minimal counterexample:
-  Initial state: lineCount = 0, total = 0, status = "draft", placedTotal = 0
+  Initial state: status = "draft", lineCount = 0, total = 0, basePrice = 900, placed = false
   Action: AC-3 ApplyDiscount
-  Final state: lineCount = 0, total = -100, status = "draft", placedTotal = 0
+  Final state: status = "draft", lineCount = 0, total = -500, basePrice = 900, placed = false
 
 Relevant contract:
   FR-2: Compute line and order totals from menu price and size multiplier
@@ -330,60 +347,81 @@ other question: does the observed implementation conform to the model?
 5. Repeat over many generated starting states and action sequences.
 
 ```ts
-const model = { count: 100 };
-const app = renderCounter({ initialCount: 100 });
+const model = { total: 2340 };
+const app = draftOrder({ lines: [{ pizza: "margherita", size: "medium", quantity: 2 }] });
 
-model.count += 1;
-await app.clickIncrement();
+model.total += 2880;
+await app.addItem({ pizza: "margherita", size: "large", quantity: 2 });
 
-expect(app.displayedCount()).toBe(model.count);
+expect(app.total()).toBe(model.total);
 ```
 
-`spec-md model test` generates that loop. Because it generates starting states
-*and* sequences, it catches changes that are locally reasonable but globally
-inconsistent with the existing contract:
+`spec-md model test` generates that loop:
+
+```text
+✓ MOD-1 Orders examples/pizza-ts/specs/order.spec.md
+  1000 trace(s), 3646 action(s), 4646 observation(s) conform
+
+✓ 1 model(s) conform, 0 failure(s)
+```
+
+Because it generates whole sequences rather than the cases someone thought of,
+it catches changes that are locally reasonable but globally inconsistent with the
+contract. Cap the order total, say:
 
 ```diff
- function increment() {
--  count += 1;
-+  count = Math.min(count + 1, 100);
- }
+-const total = items.reduce((sum, item) => sum + item.lineTotal, 0);
++const total = Math.min(items.reduce((sum, item) => sum + item.lineTotal, 0), 5000);
 ```
+
+Every unit test still passes — `TC-4`'s order comes to 4420, comfortably under
+the cap. Conformance finds the shortest order that does not:
 
 ```text
 Behavioral conformance failed
 
-Spec: Counter
-Model: MOD-1 Counter
+Spec: Pizza Orders
+Model: MOD-1 Orders
 
 Minimal counterexample:
-  Initial state: count = 100, display = 100
-  Action: AC-1 Increment
+  Initial state: status = "draft", lineCount = 0, total = 0, basePrice = 900, placed = false
+  Trace:
+    1. AC-1 AddItem(sizeMultiplier = 1.3, quantity = 2) → status = "draft", lineCount = 1, total = 2340, basePrice = 900
+    2. AC-1 AddItem(sizeMultiplier = 1.6, quantity = 2) → status = "draft", lineCount = 2, total = 5220, basePrice = 900
+    3. AC-2 PlaceOrder → status = "created", lineCount = 2, total = 5220, basePrice = 900
 
 Expected:
-  count = 101
-  display = 101
+  total = 5220
 
 Observed:
-  count = 100
-  display = 100
+  total = 5000
 
 Relevant contract:
-  FR-1: Incrementing increases the counter by one
-  AC-1: count' = count + 1
+  FR-1: Create an order from a request with a customer and at least one item
+  FR-2: Compute line and order totals from menu price and size multiplier
+  AC-2 requires: status = draft and lineCount > 0
+  AC-2: status' = created
+  AC-1: total' = total + round(basePrice * sizeMultiplier) * quantity
+  INV-2: (lineCount = 0) = (total = 0)
+  BP-1: after AC-1, total = total@pre + round(basePrice * sizeMultiplier) * quantity
+  BP-2: after AC-2, total = total@pre and lineCount = lineCount@pre
 
 Possible resolutions:
   - Restore implementation behavior so it still follows AC-1
-  - Update FR-1 and AC-1 to define the new behavior, then add the QA Test Case that pins the boundary
+  - Update FR-1, FR-2 and AC-1 to define the new behavior, then add the QA Test Case that pins the boundary
 ```
+
+Note that the failure surfaced at `AC-2 PlaceOrder` — that is where the total
+first becomes observable — but the contract it breaks belongs to `AC-1`. The
+report names whichever elements *define* the wrong value, not just the action
+that tripped over it.
 
 That turns an accidental behavior change into an explicit product decision. The
 PR now needs one of two things:
 
 1. **Fix the implementation** so it still follows the model, or
-2. **Update the specification** — "increment increases the count by one when the
-   count is below 100; at 100 it leaves the value unchanged" — which forces the
-   model to change, which forces a new `TC-N` for the boundary.
+2. **Update the specification** — "the order total is capped at 5000 cents" —
+   which forces the model to change, which forces a new `TC-N` for the boundary.
 
 Either way the change is visible and deliberate. Nothing silently redefines the
 product.
@@ -396,46 +434,73 @@ The adapter is the whole bridge between a model and an implementation. It is an
 ES module Node can import, named by the model's `adapter:` key:
 
 ```js
-// model/counter.adapter.mjs
-import { createCounter } from "../src/counter.mjs";
+// model/orders.adapter.mjs
+import { findMenuItem, unitPriceFor, SIZE_MULTIPLIER } from "../src/orders/menu.ts";
+import { OrderStore } from "../src/orders/orders.ts";
 
 export default {
   // Put the implementation in the model's initial state; return any handle.
-  init({ count }) {
-    return createCounter({ initialCount: count });
+  init({ status, lineCount, total }) {
+    if (status !== "draft" || lineCount !== 0 || total !== 0) {
+      throw new Error("cannot realize initial state");
+    }
+    return { store: new OrderStore(), draft: [], orderId: null };
   },
 
   // One entry per AC-N, keyed by id or by name. Arguments arrive by parameter name.
   actions: {
-    "AC-1": (counter) => counter.increment(),
-    "AC-2": (counter) => counter.decrement(),
-    "AC-3": (counter, { value }) => counter.set(value),
-    "AC-4": (counter) => counter.reset(),
+    "AC-1": (app, { sizeMultiplier, quantity }) => {
+      const size = Object.keys(SIZE_MULTIPLIER).find((s) => SIZE_MULTIPLIER[s] === sizeMultiplier);
+      app.draft.push({ pizzaId: "margherita", size, quantity });
+    },
+    "AC-2": (app) => {
+      app.orderId = app.store.create({ customerId: "cust-model", items: app.draft }).id;
+    },
   },
 
   // Report the implementation's state in the model's shape.
-  observe(counter) {
-    return { count: counter.value(), display: Number(counter.display()) };
+  observe(app) {
+    const state = {
+      basePrice: unitPriceFor(findMenuItem("margherita"), "small"),
+      status: app.orderId ? "created" : "draft",
+      placed: app.orderId !== null,
+    };
+    if (!app.orderId) {
+      state.lineCount = app.draft.length;
+      return state; // `total` is not observable until the order is priced
+    }
+    const order = app.store.get(app.orderId);
+    state.lineCount = order.items.length;
+    state.total = order.total;
+    return state;
   },
 
   // Optional.
-  // teardown(counter) {},
+  // teardown(app) {},
 };
 ```
 
 Every hook may be `async`. Notes:
 
-- **Only keys the model declares are compared.** Extra keys in `observe` are
-  ignored, so the adapter can return whatever is convenient. A model variable
-  that `observe` never returns is reported as not conformance-checked.
-- **Translation is the adapter's job.** Above, the model's `display` is an
-  integer while the implementation renders a string. The model should stay an
-  abstraction; the adapter reconciles shapes.
+- **Translation is the adapter's job.** The model works in size *multipliers*;
+  the implementation works in pizza ids and size names. Mapping one onto the
+  other belongs here so the model can stay an abstraction.
+- **Observe only what is observable.** `OrderStore` prices atomically, so before
+  `AC-2` there is no total to read. `observe` omits `total` until then, and the
+  runner compares only the keys it is given — the accumulated prediction is
+  checked in full the moment the order lands in the store. A model variable that
+  `observe` never returns at all is reported as not conformance-checked.
+- **Only keys the model declares are compared.** Extra keys are ignored, so the
+  adapter can return whatever is convenient.
+- **Read back, do not trust the return value.** Above, `observe` fetches from the
+  store rather than keeping what `create` returned — which is what makes it a
+  check on what was *persisted*.
 - **Each trace gets a fresh handle.** `init` runs per trace, so state cannot
   leak between them.
 - Anything Node can import works: a plain module, a rendered component, an HTTP
-  client against a running server. A TypeScript project points the adapter at
-  compiled output or a `.mjs` shim.
+  client against a running server. The pizza adapter imports `src/*.ts` directly,
+  which needs a Node that strips TypeScript types (≥ 22.18); a project without
+  one points its adapter at compiled output instead.
 
 ---
 
@@ -443,15 +508,16 @@ Every hook may be `async`. Notes:
 
 When a requirement changes but the model does not, `spec-md lint` flags the
 likely inconsistency. These are heuristics — semantic checks, not proofs — so
-they are always warnings, and they only run for specs that declare a model:
+they are always warnings, and they only run for specs that declare a model.
+Marking `FR-2` as capped without touching the model:
 
 ```text
-▲ Potential requirement/model drift: FR-1 mentions 100, which no model element
-  tracing to it (AC-1, BP-1, BP-2) references — the model may need a guard
-▲ Potential requirement/model drift: FR-1 constrains behavior ("maximum"), but
-  AC-1 declares no `requires:` guard
-▲ FR-1 is marked [UPDATED] — confirm the model elements tracing to it
-  (AC-1, BP-1, BP-2) still match
+▲ Potential requirement/model drift: FR-2 mentions 5000, which no model element
+  tracing to it (AC-1, INV-2, BP-1) references — the model may need a guard
+▲ Potential requirement/model drift: FR-2 constrains behavior ("capped"), but
+  no guard on AC-1 mentions 5000
+▲ FR-2 is marked [UPDATED] — confirm the model elements tracing to it
+  (AC-1, INV-2, BP-1) still match
 ```
 
 Also reported: a model element that cites no `FR-N` (the model is no longer
@@ -494,7 +560,7 @@ Exploration is exhaustive **within bounds**, never in general. The bounds:
 |------|---------|----------------|
 | `--depth <n>` | `4` | Length of the action sequences explored |
 | `--max-states <n>` | `4000` | State budget for `model check` |
-| `--max-traces <n>` | `200` | Trace budget for `model test` |
+| `--max-traces <n>` | `1000` | Trace budget for `model test` |
 | `--max-inits <n>` | `8` | Generated initial states |
 | `--max-args <n>` | `3` | Values tried per action parameter |
 
@@ -503,8 +569,17 @@ one variable at a time to its boundaries (min, max, midpoint, or each enum
 value), and parameters are sampled the same way — and they mark the **frontier**:
 a transition that leaves a domain produces a state that is still checked against
 every invariant and property, but is not expanded further. That is what keeps
-`count: integer in 0..100` from turning into a requirement while still bounding
+`lineCount: integer in 0..3` from turning into a requirement while still bounding
 the walk. `model check` reports how many states sat at that frontier.
+
+**Generated initial states are only as useful as the state is loose.** In the
+orders model, `INV-1` and `INV-2` rule out every boundary candidate — an order
+cannot have three lines and a zero total, or be `created` with no lines — so the
+declared initial state is the only valid one, and the coverage comes from depth
+instead. That is the normal outcome for tightly coupled state, and it is why
+invariants matter beyond correctness: they keep generation honest. A model whose
+variables move independently (a counter, a cache, a feature flag) gets far more
+out of `--max-inits`.
 
 A model whose search hits `--max-states` says so; the run was not exhaustive.
 
@@ -518,6 +593,12 @@ Worth knowing before you model something large:
   maps, or records — model the aggregate (`lineCount`, `total`) instead of the
   collection. This is usually the right abstraction anyway, but it is a real
   ceiling.
+- **Model what can be driven and observed.** An action needs a real operation
+  behind it and a way to read the result back. Input validation (`FR-4` in the
+  pizza spec) is a guard on the boundary rather than a state transition, and
+  caller-side aliasing (`FR-3`'s "mutate the returned object") is not expressible
+  in a state model at all. Say so in the section and leave those to their `TC-N`
+  rows rather than pretending the model covers them.
 - **Guards constrain generation, not the implementation.** A `requires:` clause
   keeps an action out of generated traces; conformance does not assert that the
   implementation rejects the action when the guard is false.
@@ -535,5 +616,5 @@ Worth knowing before you model something large:
   test cases to the spec.
 - [SKILL.md](./SKILL.md) — the authoring procedure agents follow, including when
   a spec is worth modeling.
-- [examples/counter-js](./examples/counter-js) — a runnable model, adapter, and
-  conformance run, plus a bug the unit tests miss and the model catches.
+- [examples/pizza-ts](./examples/pizza-ts) — the worked example: spec, model,
+  adapter, tagged tests, and the capped-total regression above, end to end.

@@ -163,6 +163,12 @@ function compare(model, vars, observed) {
   };
 }
 
+/** "FR-1, FR-2 and AC-1" — how a report names several ids in prose. */
+function list(ids) {
+  if (ids.length < 2) return ids[0] ?? "";
+  return `${ids.slice(0, -1).join(", ")} and ${ids.at(-1)}`;
+}
+
 const equalValues = (a, b) =>
   typeof a === "number" && typeof b === "number" ? Math.abs(a - b) <= EPSILON : a === b;
 
@@ -175,7 +181,18 @@ export function formatConformanceFailure({ spec, model, failure }) {
   const push = (line = "") => lines.push(line);
   const step = failure.step;
   const action = step?.action;
-  const frRows = relevantRequirements(spec, model, action);
+  const differing = failure.differing ?? [];
+  const { assigners, constraints } = definingElements(model, differing);
+  // Requirements come from whatever *defines* the wrong value, which is often
+  // not the action that tripped the mismatch — placing an order is merely where
+  // a bad running total becomes observable.
+  const frIds = new Set([
+    ...(action?.requirements ?? []),
+    ...assigners.flatMap((e) => e.requirements),
+  ]);
+  if (!frIds.size) for (const a of model.actions) for (const id of a.requirements) frIds.add(id);
+  const frRows = spec.frs.filter((fr) => frIds.has(fr.id));
+  const owners = (assigners.length ? assigners : [action]).filter(Boolean).map((e) => e.id);
 
   push(failure.kind === "mismatch" ? "Behavioral conformance failed" : "Conformance run failed");
   push();
@@ -208,18 +225,20 @@ export function formatConformanceFailure({ spec, model, failure }) {
   if (frRows.length || action) {
     push("Relevant contract:");
     for (const fr of frRows) push(`  ${fr.id}: ${fr.text}`);
-    if (action) {
-      if (action.guard) push(`  ${action.id} requires: ${action.guard.src}`);
-      for (const update of action.updates) push(`  ${action.id}: ${update.target}' = ${update.expr.src}`);
+    if (action) for (const line of contractLines(action, differing, true)) push(`  ${line}`);
+    for (const element of assigners) {
+      if (element === action) continue;
+      for (const line of contractLines(element, differing, false)) push(`  ${line}`);
     }
+    for (const element of constraints) for (const line of contractLines(element)) push(`  ${line}`);
     push();
   }
 
   push("Possible resolutions:");
   if (failure.kind === "mismatch") {
-    push(`  - Restore implementation behavior so it still follows ${action ? action.id : model.id}`);
+    push(`  - Restore implementation behavior so it still follows ${list(owners) || model.id}`);
     push(
-      `  - Update ${[...frRows.map((fr) => fr.id), action?.id].filter(Boolean).join(" and ")} ` +
+      `  - Update ${list([...frRows.map((fr) => fr.id), ...owners])} ` +
         `to define the new behavior, then add the QA Test Case that pins the boundary`,
     );
   } else {
@@ -230,8 +249,44 @@ export function formatConformanceFailure({ spec, model, failure }) {
   return lines;
 }
 
-function relevantRequirements(spec, model, action) {
-  const ids = new Set(action ? action.requirements : []);
-  if (!ids.size) for (const a of model.actions) for (const id of a.requirements) ids.add(id);
-  return spec.frs.filter((fr) => ids.has(fr.id));
+/**
+ * Split the model by how it relates to the variables that came out wrong:
+ * `assigners` are the actions that set them (who owns the value), `constraints`
+ * are the invariants and properties that say something about them.
+ */
+function definingElements(model, differing) {
+  if (!differing.length) return { assigners: [], constraints: [] };
+  const names = new Set(differing);
+  const assigners = model.actions.filter((action) =>
+    action.updates.some((update) => names.has(update.target)),
+  );
+  const constraints = [...model.invariants, ...model.properties]
+    .filter((element) => {
+      const source = element.check?.src ?? element.claim?.src ?? "";
+      const words = new Set(source.match(/[A-Za-z_][A-Za-z0-9_]*/g) || []);
+      return [...names].some((name) => words.has(name));
+    })
+    // A wall of claims helps nobody; the closest few carry the point.
+    .slice(0, 3);
+  return { assigners, constraints };
+}
+
+/**
+ * How one model element reads in a contract block. For an action, `only`
+ * narrows the updates to the variables that actually differed, and `guard`
+ * includes its precondition.
+ */
+function contractLines(element, only = [], guard = true) {
+  if (!element.updates) {
+    const claim = element.check?.src ?? element.claim?.src;
+    return claim ? [`${element.id}: ${claim}`] : [];
+  }
+  const names = new Set(only);
+  const updates = element.updates.filter((u) => !names.size || names.has(u.target));
+  return [
+    guard && element.guard ? `${element.id} requires: ${element.guard.src}` : null,
+    ...(updates.length ? updates : element.updates).map(
+      (u) => `${element.id}: ${u.target}' = ${u.expr.src}`,
+    ),
+  ].filter(Boolean);
 }

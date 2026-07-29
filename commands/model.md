@@ -32,7 +32,8 @@ Then report, per model:
    implementation, or update the `FR-N`/`AC-N` and add the `TC-N` that pins the
    new boundary.
 3. **Unexercised properties** — a `BP-N` nothing triggered within the bounds
-   proves nothing; suggest a higher `--depth` or a wider domain.
+   proves nothing; suggest a higher `--depth` or a wider domain. Note when a run
+   stopped at `--max-states`: it was not exhaustive.
 4. **Coverage gaps** — requirements with no model element, and model elements
    citing no `FR-N`.
 

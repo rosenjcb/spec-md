@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { OrderStore, ValidationError } from "../../src/orders/orders.js";
+import { OrderStore, ValidationError } from "../../src/orders/orders.ts";
 
 // Tags ([TC-N]) link each case to a QA Test Case in specs/order.spec.md.
 describe("OrderStore", () => {

@@ -3,14 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "A spec.md reference example: a tiny pizza ordering API built from order.spec.md",
+  "description": "A spec.md reference example: a tiny pizza ordering API built from order.spec.md, with an executable behavioral model and conformance testing",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "build": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "http": "httpyac send http/*.http --all"
+    "http": "httpyac send http/*.http --all",
+    "model:list": "npx @rosenjcb/spec-md model list .",
+    "model:check": "npx @rosenjcb/spec-md model check .",
+    "model:test": "npx @rosenjcb/spec-md model test .",
+    "check": "npx @rosenjcb/spec-md check . --strict --conform"
   },
   "dependencies": {
     "express": "^4.19.2"
@@ -22,5 +26,8 @@
     "tsx": "^4.16.2",
     "typescript": "^5.5.3",
     "vitest": "^2.0.5"
+  },
+  "engines": {
+    "node": ">=22.18"
   }
 }

@@ -1,7 +1,7 @@
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createApp } from "../../src/app.js";
+import { createApp } from "../../src/app.ts";
 
 /**
  * HTTP-level tests that exercise the Express app over a real socket using
