@@ -35,3 +35,9 @@ export function bar(pct, width = 20) {
 export function relative(filePath, cwd = process.cwd()) {
   return filePath.startsWith(cwd) ? filePath.slice(cwd.length + 1) : filePath;
 }
+
+/** A spec's name for a report header — the `Spec: ` title prefix is redundant there. */
+export function specLabel(spec) {
+  const title = spec.frontmatter?.title || relative(spec.filePath);
+  return String(title).replace(/^Spec:\s*/i, "");
+}

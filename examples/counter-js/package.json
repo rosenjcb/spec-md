@@ -1,0 +1,13 @@
+{
+  "name": "counter-js",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A spec.md reference example: the behavioral model layer, conformance-tested with zero dependencies",
+  "scripts": {
+    "test": "node --test",
+    "model:check": "npx @rosenjcb/spec-md model check .",
+    "model:test": "npx @rosenjcb/spec-md model test .",
+    "check": "npx @rosenjcb/spec-md check . --strict --conform"
+  }
+}

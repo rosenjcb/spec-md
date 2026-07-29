@@ -1,16 +1,24 @@
 import { readFileSync } from "node:fs";
+import { parseModels } from "./model.js";
 
 /**
  * Minimal, dependency-free parser for a *.spec.md document.
  * It is intentionally lenient: it extracts the structure spec.md cares about
- * (frontmatter, FR-N rows, TC-N rows) without pulling in a full YAML/Markdown
- * stack. It is not a validator — lint.js interprets the result.
+ * (frontmatter, FR-N rows, TC-N rows, and the optional behavioral model)
+ * without pulling in a full YAML/Markdown stack. It is not a validator —
+ * lint.js interprets the result.
  */
 
 const ID_RE = {
   fr: /^FR-\d+$/,
   tc: /^TC-\d+$/,
 };
+
+/** Model ids a TC row may also cite in its Requirement column. */
+const MODEL_REF_RE = /\b(?:AC|BP|INV|MOD)-\d+\b/g;
+
+/** The heading that introduces the behavioral model layer. */
+const MODEL_SECTION_RE = /^#{1,6}\s+Behavioral Model\s*$/im;
 
 const MARKER_RE = /\[(REMOVED|NEW|UPDATED)\]/g;
 
@@ -144,10 +152,13 @@ export function parseTables(text, frontmatterLines = 0) {
         if (!id) return;
         const reqCell = cells[reqCol] || "";
         const requirements = [...reqCell.matchAll(/FR-\d+/g)].map((m) => m[0]);
+        // A TC may also cite the model element it exercises (FR-1, AC-1).
+        const modelRefs = [...reqCell.matchAll(MODEL_REF_RE)].map((m) => m[0]);
         tcs.push({
           id,
           valid: ID_RE.tc.test(id),
           requirements,
+          modelRefs,
           reqRaw: reqCell.replace(MARKER_RE, "").trim(),
           scenario: cells[reqCol + 1] || "",
           expected: cells[reqCol + 2] || "",
@@ -167,6 +178,7 @@ export function parseSpec(filePath) {
   const text = readFileSync(filePath, "utf8");
   const { data, hasFrontmatter, endLine } = parseFrontmatter(text);
   const { frs, tcs, sawFrTable, sawTcTable } = parseTables(text, endLine);
+  const { models, problems: modelProblems } = parseModels(text, endLine);
   return {
     filePath,
     text,
@@ -176,6 +188,9 @@ export function parseSpec(filePath) {
     tcs,
     sawFrTable,
     sawTcTable,
+    models,
+    modelProblems,
+    sawModelSection: MODEL_SECTION_RE.test(text),
   };
 }
 

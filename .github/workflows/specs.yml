@@ -34,9 +34,15 @@ jobs:
       - name: Tests
         run: pnpm test
 
-      # Dogfood: validate this repo's own specs and their [TC-N] coverage.
+      # Dogfood: validate this repo's own specs, their [TC-N] coverage, and the
+      # behavioral models — including conformance against counter-js's adapter.
       - name: Validate specs
-        run: node cli/bin/spec-md.js check . --strict
+        run: node cli/bin/spec-md.js check . --strict --conform
+
+      # The example's own [TC-N] unit tests (zero dependencies, node:test).
+      - name: Example tests
+        run: node --test
+        working-directory: examples/counter-js
 
   # Dedicated status check for branch protection. Version bump is applied on the
   # branch (`pnpm run changeset:version`), not after merge.

@@ -11,8 +11,8 @@ spec.md ships in two layers you can mix and match:
 1. **The skill** — the authoring guidance that teaches an agent to write and
    maintain `*.spec.md` files. Same content, packaged for each agent as
    `spec-md` (invoke as `/spec-md`).
-2. **The CLI** — `spec-md`, a zero-dependency validator/coverage tool that makes
-   specs enforceable in CI.
+2. **The CLI** — `spec-md`, a zero-dependency validator, coverage tool, and
+   behavioral-model checker that makes specs enforceable in CI.
 
 | You use… | Install |
 |----------|---------|
@@ -32,7 +32,7 @@ for Claude — not both (duplicate `/spec-md` entries).
 ## 1. Claude Code plugin (recommended)
 
 Root `SKILL.md` is the plugin's single skill (no nested `skills/spec-md/` copy).
-Commands are only `:check` and `:coverage`.
+Commands are only `:check`, `:coverage`, and `:model`.
 
 ```
 /plugin marketplace add rosenjcb/spec.md
@@ -45,6 +45,7 @@ Then in any session:
 /spec-md orders             # create or update — skill triages either way
 /spec-md:check              # lint every spec in the repo
 /spec-md:coverage           # which TC-N are missing a [TC-N] test?
+/spec-md:model              # explore + conformance-test behavioral models
 ```
 
 Authoring is `/spec-md`. Claude may also list a namespaced form of the same
@@ -102,12 +103,17 @@ plugin (that double-named the slash form).
 ## 4. The CLI
 
 ```bash
-npx @rosenjcb/spec-md lint            # validate frontmatter + FR/TC structure
+npx @rosenjcb/spec-md lint            # validate frontmatter + FR/TC/model structure
 npx @rosenjcb/spec-md coverage        # TC-N ↔ [TC-N] test coverage
-npx @rosenjcb/spec-md check --strict  # both, as a CI gate
+npx @rosenjcb/spec-md check --strict  # all three, as a CI gate
+npx @rosenjcb/spec-md model check     # explore each behavioral model
+npx @rosenjcb/spec-md model test      # conformance: implementation vs. model
 npx @rosenjcb/spec-md new billing     # scaffold billing.spec.md
 npx @rosenjcb/spec-md list            # every spec, with counts + coverage
 ```
+
+The behavioral model layer is optional; the full reference is
+[MODELS.md](./MODELS.md).
 
 Install it as a dev dependency to pin the version:
 
@@ -137,6 +143,7 @@ jobs:
         with:
           path: .
           strict: "true"
+          # conform: "true"   # also conformance-test behavioral models
 ```
 
 Or skip the action and run the CLI directly: `npx @rosenjcb/spec-md check --strict`.

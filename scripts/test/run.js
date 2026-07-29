@@ -359,14 +359,20 @@ test('real repo adapters are in sync with SKILL.md', () => {
 
 console.log('\nplugin invocation nomenclature')
 /**
- * Authoring is root SKILL.md → `/spec-md`. Only check/coverage are commands
- * (`commands/<stem>.md` → `/spec-md:<stem>`). No nested `skills/spec-md/`
- * (that double-named the slash form). Portable copy: `.agents/skills/spec-md/`.
+ * Authoring is root SKILL.md → `/spec-md`. Only check/coverage/model are
+ * commands (`commands/<stem>.md` → `/spec-md:<stem>`). No nested
+ * `skills/spec-md/` (that double-named the slash form). Portable copy:
+ * `.agents/skills/spec-md/`.
  */
-const EXPECTED_COMMAND_FILES = ['check.md', 'coverage.md']
-const EXPECTED_COMMAND_INVOCATIONS = ['/spec-md:check', '/spec-md:coverage']
+const EXPECTED_COMMAND_FILES = ['check.md', 'coverage.md', 'model.md']
+const EXPECTED_COMMAND_INVOCATIONS = ['/spec-md:check', '/spec-md:coverage', '/spec-md:model']
 /** Docs must also advertise bare `/spec-md` for authoring (trailing space avoids matching `:check`). */
-const EXPECTED_DOC_SNIPPETS = ['/spec-md ', '/spec-md:check', '/spec-md:coverage']
+const EXPECTED_DOC_SNIPPETS = [
+  '/spec-md ',
+  '/spec-md:check',
+  '/spec-md:coverage',
+  '/spec-md:model',
+]
 const FORBIDDEN_INVOCATION_SUBSTRINGS = [
   '/spec:update',
   '/spec:check',

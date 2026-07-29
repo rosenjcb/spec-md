@@ -77,3 +77,55 @@ cases. Here `FR-2` (pricing) owns `TC-2` through `TC-4`, and `FR-4`
 | TC-7 | FR-4 | Empty items list | 400 validation error |
 | TC-8 | FR-4 | Unknown pizza or non-positive quantity | 400 validation error |
 | TC-9 | FR-5 | Fetch existing / unknown id | 200 with order / 404 not found |
+
+### Behavioral Model
+
+An abstraction of the ordering lifecycle, not a copy of it: the model tracks how
+many lines have been priced, the running total in cents, and whether the order
+has been placed. That is enough to state the contract mechanically — in
+particular `FR-3`, immutability after creation, which `INV-1` turns into a claim
+the explorer checks against every reachable state rather than the one case
+`TC-5` happens to try.
+
+The domains (`0..3` lines, `0..20000` cents) bound the exploration, not the
+system. This model declares no `adapter`, so `spec-md model check` verifies it
+while `spec-md model test` reports it as unbridged; the
+[counter-js example](../../counter-js) shows the conformance side.
+
+```spec-model
+model: MOD-1 Orders
+
+state:
+  lineCount: integer in 0..3 = 0
+  total: integer in 0..20000 = 0
+  status: string in [draft, created] = draft
+  placedTotal: integer in 0..20000 = 0
+
+AC-1 AddItem(unitPrice: integer in 900..1200, quantity: integer in 1..3):
+  requirement: FR-2
+  requires: status = draft
+  lineCount' = lineCount + 1
+  total' = total + unitPrice * quantity
+
+AC-2 PlaceOrder:
+  requirement: FR-1
+  requires: status = draft and lineCount > 0
+  status' = created
+  placedTotal' = total
+
+INV-1 A placed order never changes:
+  requirement: FR-3
+  check: status = created implies total = placedTotal
+
+INV-2 The total is never negative:
+  requirement: FR-2
+  check: total >= 0
+
+BP-1 Each line adds unit price times quantity to the total:
+  requirement: FR-2
+  check: after AC-1, total = total@pre + unitPrice * quantity
+
+BP-2 Placing an order does not change what was priced:
+  requirement: FR-1
+  check: after AC-2, total = total@pre and lineCount = lineCount@pre
+```

@@ -9,7 +9,7 @@
 <p><em>The constraint is no longer implementation speed.<br />The constraint is alignment.</em></p>
 
 <p>
-  <img src="https://img.shields.io/badge/version-0.3.5-6366F1" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.4-6366F1" alt="Version" />
   <img src="https://img.shields.io/badge/status-draft-8B5CF6" alt="Status: draft" />
   <img src="https://img.shields.io/badge/built%20on-Open%20Knowledge%20Format-22C55E" alt="Built on Open Knowledge Format" />
 </p>
@@ -22,11 +22,13 @@
 
 | Piece | What it is | What it gives you |
 |-------|------------|-------------------|
-| **The format** | `*.spec.md` — structured Markdown (an [Open Knowledge Format](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing) extension) with numbered Functional Requirements (`FR-N`) and QA Test Cases (`TC-N`) | One authoritative, machine-readable description of what a system should do |
+| **The format** | `*.spec.md` — structured Markdown (an [Open Knowledge Format](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing) extension) with numbered Functional Requirements (`FR-N`), QA Test Cases (`TC-N`), and an optional executable [behavioral model](#behavioral-models) | One authoritative, machine-readable description of what a system should do |
 | **The skill** | `/spec-md` — authoring guidance installed into Claude Code, Cursor, Codex, Windsurf, Cline, or Copilot | Your agent writes and maintains specs the same way every time, instead of inventing structure |
-| **The tooling** | the [`spec-md` CLI](./cli) and a [GitHub Action](./action.yml) | Specs become checkable artifacts: lint the structure, fail CI when a test case loses its test |
+| **The tooling** | the [`spec-md` CLI](./cli) and a [GitHub Action](./action.yml) | Specs become checkable artifacts: lint the structure, fail CI when a test case loses its test or the implementation stops conforming to the model |
 
 The core loop: **describe behavior once in the spec → build the implementation and tests against it → tag every test with the `[TC-N]` it proves → let CI fail when spec and system drift apart.**
+
+Tests protect examples. Models protect behavior.
 
 ## Contents
 
@@ -38,6 +40,7 @@ The core loop: **describe behavior once in the spec → build the implementation
 - [The workflow](#the-workflow)
 - [Anatomy of a spec](#anatomy-of-a-spec)
 - [The `[TC-N]` join key](#the-tc-n-join-key)
+- [Behavioral models](#behavioral-models)
 - [Keeping a spec alive](#keeping-a-spec-alive)
 - [Review & sign-off](#review--sign-off)
 - [CI](#ci)
@@ -99,7 +102,7 @@ The spec is **living**: when behavior changes, the spec rows change with it (mar
 Get spec.md into your project in one line. Every option, flag by flag: **[INSTALL.md](./INSTALL.md)**.
 
 ```bash
-# Claude Code — plugin (/spec-md + /spec-md:check + /spec-md:coverage)
+# Claude Code — plugin (/spec-md + /spec-md:check + /spec-md:coverage + /spec-md:model)
 /plugin marketplace add rosenjcb/spec.md
 /plugin install spec-md@spec-md
 
@@ -115,9 +118,9 @@ npx @rosenjcb/spec-md check
 
 | Surface | What you get |
 |---------|--------------|
-| **Claude Code plugin** | Root `SKILL.md` as `/spec-md` plus the `/spec-md:check` and `/spec-md:coverage` commands. |
+| **Claude Code plugin** | Root `SKILL.md` as `/spec-md` plus the `/spec-md:check`, `/spec-md:coverage`, and `/spec-md:model` commands. |
 | **`install.sh` / `install.ps1`** | Same `spec-md` skill into Claude / `.agents/skills/` (Cursor, Codex) plus per-agent rules and `AGENTS.md`. |
-| **[`spec-md` CLI](./cli)** | `lint`, `coverage`, `check`, `list`, `new` — validate specs and enforce `[TC-N]` coverage. |
+| **[`spec-md` CLI](./cli)** | `lint`, `coverage`, `check`, `model`, `list`, `new` — validate specs, enforce `[TC-N]` coverage, and conformance-test behavioral models. |
 | **[GitHub Action](./action.yml)** | `uses: rosenjcb/spec.md@main` — fail CI when a spec drifts or a test case loses its test. |
 
 Every agent rule file is generated from [`SKILL.md`](./SKILL.md) so nothing drifts.
@@ -171,6 +174,7 @@ A complete, runnable end-to-end example — spec, code, tagged unit tests, tagge
 | `/spec-md <domain or request>` | Every installed agent (it is the skill itself) | Author **or** update a spec — the skill triages which. It reads the code first and derives the spec from it: branching logic becomes `FR-N` rows, edge cases become `TC-N` rows, and `sources`/`tests` paths get wired up. It also decides (and asks, when unclear) whether the change warrants a [review record](#review--sign-off), and finishes by linting. |
 | `/spec-md:check [path]` | Claude Code plugin | Validate every spec under the path (default: whole repo) — frontmatter, unique/contiguous/ascending `FR-N`/`TC-N` ids, `TC→FR` references, resolvable `sources`/`tests` paths. Reports errors grouped by file and proposes fixes; it does not edit specs unless you ask. |
 | `/spec-md:coverage [path]` | Claude Code plugin | Cross-reference each `TC-N` row against the `[TC-N]` tags in the spec's `tests` paths. Lists uncovered test cases, flags orphan tags (a `[TC-N]` in the suite that no spec declares), and recommends the concrete next step for each gap. |
+| `/spec-md:model [check\|test\|list] [path]` | Claude Code plugin | Explore each [behavioral model](#behavioral-models) and, where a model declares an `adapter`, conformance-test the implementation against it. Reports each minimal counterexample and says whether the model or the implementation is wrong — it will not loosen an invariant to make a check pass. |
 
 What `/spec-md` actually does, step by step (the full procedure is [`SKILL.md`](./SKILL.md)):
 
@@ -188,13 +192,14 @@ Full reference with all flags: [`cli/README.md`](./cli/README.md). Zero runtime 
 
 | Command | What it does |
 |---------|--------------|
-| `spec-md lint [paths…]` | Validate frontmatter, `FR-N`/`TC-N` id integrity (unique, contiguous, ascending), and `TC→FR` references. |
+| `spec-md lint [paths…]` | Validate frontmatter, `FR-N`/`TC-N`/model id integrity (unique, contiguous, ascending), `TC→FR` references, and requirement↔model drift. |
 | `spec-md coverage [paths…]` | Report which `TC-N` rows have at least one `[TC-N]` test, and flag orphan tags. |
-| `spec-md check [paths…]` | `lint` + `coverage`, strict — the one to run in CI. |
+| `spec-md check [paths…]` | `lint` + `coverage` + `model check`, strict — the one to run in CI. |
+| `spec-md model [check\|test\|list]` | Explore each behavioral model (`check`), conformance-test the implementation through its adapter (`test`), or print the contract (`list`). |
 | `spec-md list [paths…]` | Every spec in the tree, with FR/TC counts and a coverage bar. |
-| `spec-md new <domain>` | Scaffold `<domain>.spec.md` from the canonical template. |
+| `spec-md new <domain>` | Scaffold `<domain>.spec.md` from the canonical template (`--model` adds a Behavioral Model section). |
 
-Flags worth knowing: `--strict` (exit non-zero on warnings and coverage gaps), `--json` (machine-readable output), `--tests <path>` (override where coverage looks for tags), and `--require-approved` (the [review merge gate](#review--sign-off)).
+Flags worth knowing: `--strict` (exit non-zero on warnings and coverage gaps), `--json` (machine-readable output), `--tests <path>` (override where coverage looks for tags), `--require-approved` (the [review merge gate](#review--sign-off)), and `--conform` (make `check` also run conformance).
 
 ---
 
@@ -327,6 +332,7 @@ Only `type` and `title` are required; add the rest as the spec matures.
 | **Scope** | Two lists — `In Scope` and `Out of Scope`. Being explicit about what the system does *not* own is what prevents responsibility drift. |
 | **Functional Requirements** | The `FR-N` table. Each row is a higher-level, *testable* statement of intent — not a vague goal, not an implementation detail. One behavior per row. |
 | **QA Test Cases** | The `TC-N` table. Each row cites the `FR-N` it proves and is a deterministic, concrete check — exact input, exact expected outcome. |
+| **Behavioral Model** *(optional)* | The `MOD-N` block: state, actions (`AC-N`), invariants (`INV-N`), and properties (`BP-N`) — the contract made executable. See [Behavioral models](#behavioral-models). |
 
 ### Requirements vs. test cases
 
@@ -355,6 +361,92 @@ The convention is runner-agnostic — the same tag works in a Vitest name, a JUn
 - an **orphan `[TC-N]`** means the suite verifies behavior the spec never declared — add the row, or retag it `[smoke]` if it is not an acceptance criterion.
 
 The full convention, including `.http` integration requests: **[TESTING.md](./TESTING.md)**.
+
+---
+
+## Behavioral models
+
+A `TC-N` row proves one example. A test suite proves the examples someone thought to write — which means an implementation change can quietly redefine what the product does and still ship green. **Tests protect examples. Models protect behavior.**
+
+When behavior is worth protecting mechanically, a spec gains a `### Behavioral Model` section: an executable statement of the contract, in a fenced ` ```spec-model ` block. The state transition model is the primary artifact; invariants (`INV-N`) and behavioral properties (`BP-N`) are additional claims about it.
+
+````md
+### Behavioral Model
+
+```spec-model
+model: MOD-1 Counter
+adapter: ./model/counter.adapter.mjs
+
+state:
+  count: integer in 0..100 = 0
+
+AC-1 Increment:
+  requirement: FR-1
+  count' = count + 1
+
+AC-2 Decrement:
+  requirement: FR-2
+  requires: count > 0
+  count' = count - 1
+
+INV-1 The counter is never negative:
+  requirement: FR-2
+  check: count >= 0
+
+BP-1 Increment changes the counter by exactly one:
+  requirement: FR-1
+  check: after AC-1, count = count@pre + 1
+```
+````
+
+Two commands act on it:
+
+- **`spec-md model check`** explores the model's own state and action space breadth-first, checking every invariant and property along the way. That is the half that finds scenarios nobody thought to name as a property — and because the search is breadth-first, the counterexample it reports is the shortest one.
+- **`spec-md model test`** is **conformance**: it puts the model and the implementation in corresponding initial states, performs each generated action on both, observes the implementation through an [adapter](./MODELS.md#the-adapter-contract), and compares. A change that is locally reasonable but globally inconsistent with the contract fails here:
+
+```diff
+ function increment() {
+-  count += 1;
++  count = Math.min(count + 1, 100);
+ }
+```
+
+```text
+Behavioral conformance failed
+
+Spec: Counter
+Model: MOD-1 Counter
+
+Minimal counterexample:
+  Initial state: count = 100, display = 100
+  Action: AC-1 Increment
+
+Expected:
+  count = 101
+
+Observed:
+  count = 100
+
+Relevant contract:
+  FR-1: Incrementing increases the counter by one
+  AC-1: count' = count + 1
+
+Possible resolutions:
+  - Restore implementation behavior so it still follows AC-1
+  - Update FR-1 and AC-1 to define the new behavior, then add the QA Test Case that pins the boundary
+```
+
+The point is not the failure — it is that the failure **forces an explicit decision**. Either the implementation goes back to following the model, or the requirement changes, which forces the model to change, which forces a new `TC-N` for the boundary. Nothing silently redefines the product.
+
+The ids extend the same traceability chain the format already has, and `spec-md lint` keeps them honest:
+
+```text
+FR-1 → BP-1 → AC-1 → TC-1 → [TC-1] test → implementation
+```
+
+Because the layer above the model — human intent ↔ model — is semantic rather than formal, `spec-md lint` treats it as a judgment call and only *surfaces* likely drift: a requirement that names a maximum the model does not guard, an `[UPDATED]` row whose model elements may be stale, a model element citing no requirement. Warnings, never proofs.
+
+The model layer is entirely optional; a spec without one behaves exactly as before. The complete language, adapter contract, bounds, and limits: **[MODELS.md](./MODELS.md)**. A runnable example — including a bug the unit tests miss and the model catches: [`examples/counter-js`](./examples/counter-js).
 
 ---
 
@@ -409,6 +501,7 @@ jobs:
         with:
           path: .
           strict: "true"
+          # conform: "true"            # also conformance-test behavioral models
           # require-approved: "true"   # opt-in review merge gate
 ```
 
@@ -416,6 +509,7 @@ Or skip the action and run the CLI directly:
 
 ```yaml
 - run: npx @rosenjcb/spec-md check --strict
+- run: npx @rosenjcb/spec-md check --strict --conform   # …including conformance
 ```
 
 ---
@@ -430,7 +524,7 @@ A spec is the authoritative description of a system — what it does, why it exi
 | **Product & design** | Behavior and interaction rules, flows, edge cases, and usability constraints. |
 | **Engineering** | System boundaries and responsibilities, data contracts, validation rules, and invariants. |
 | **QA** | Expected behavior, acceptance criteria (`TC-N`), failure conditions, and regression coverage. |
-| **AI agents** | Executable context — what to build, what *not* to build, how components should behave, and how to validate correctness. |
+| **AI agents** | Executable context — what to build, what *not* to build, how components should behave, and how to validate correctness. The behavioral model turns the last of those into a check an agent can run. |
 
 Beyond describing a feature, a spec is a shared model of the system that connects intent to implementation.
 
@@ -441,13 +535,14 @@ Beyond describing a feature, a spec is a shared model of the system that connect
 | Path | What it is |
 |------|------------|
 | [`SKILL.md`](./SKILL.md) | The canonical skill — the single source of truth every adapter is generated from, and the Claude Code plugin's skill. |
-| [`commands/`](./commands) | The Claude Code plugin slash commands (`/spec-md:check`, `/spec-md:coverage`). |
+| [`commands/`](./commands) | The Claude Code plugin slash commands (`/spec-md:check`, `/spec-md:coverage`, `/spec-md:model`). |
 | `AGENTS.md`, `.cursor/`, `.windsurf/`, `.clinerules/`, `.github/copilot-instructions.md`, `.agents/skills/spec-md/` | Generated per-agent adapters — never edit by hand; run `pnpm run sync`. |
 | [`cli/`](./cli) | The `@rosenjcb/spec-md` CLI (npm). |
 | [`action.yml`](./action.yml) | The GitHub Action wrapping `spec-md check`. |
 | [`install.sh`](./install.sh) / [`install.ps1`](./install.ps1) | One-line installers for every agent surface. |
-| [`examples/pizza-ts`](./examples/pizza-ts) | Runnable reference: spec + review record + tagged unit tests + tagged `.http` requests. |
-| [`TESTING.md`](./TESTING.md) / [`REVIEW.md`](./REVIEW.md) / [`INSTALL.md`](./INSTALL.md) | The companion conventions in depth. |
+| [`examples/pizza-ts`](./examples/pizza-ts) | Runnable reference: spec + review record + tagged unit tests + tagged `.http` requests + a behavioral model. |
+| [`examples/counter-js`](./examples/counter-js) | Runnable reference for the model layer: `MOD-1`, an adapter, and conformance testing, with zero dependencies. |
+| [`TESTING.md`](./TESTING.md) / [`MODELS.md`](./MODELS.md) / [`REVIEW.md`](./REVIEW.md) / [`INSTALL.md`](./INSTALL.md) | The companion conventions in depth. |
 
 ---
 
@@ -471,6 +566,9 @@ It is a signal: either the spec is missing a row (add it — the behavior is evi
 **Does an approved review freeze the spec?**
 No. `status: approved` records that a review round concluded; the spec keeps living. The driver decides when a later change warrants re-review — `[NEW]` / `[UPDATED]` markers make "what changed since you signed" cheap to communicate.
 
+**Do I need a behavioral model?**
+No — the layer is opt-in and most specs never gain one. It pays off when a domain has state that changes over time and behavior worth protecting mechanically. Pure request/response validation, presentation, and configuration are better served by `TC-N` rows alone.
+
 **What is OKF?**
 The [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) — Markdown documents with typed YAML frontmatter, designed to be consumed by humans and agents alike. spec.md extends it with the `Spec` and `Review` document types.
 
@@ -480,6 +578,7 @@ The [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-cat
 
 - [TESTING.md](./TESTING.md) — how tests relate to a `*.spec.md`. Covers unit and integration tests and the `[TC-N]` tag convention embedded in the test name, where the tag links each test back to a QA Test Case in the spec. Suggests (but does not require) Gherkin **Given / When / Then** phrasing.
 - [REVIEW.md](./REVIEW.md) — how a spec gets reviewed and signed off. A `*.review.md` record beside the spec (OKF `type: Review`) carries the roles, per-stakeholder briefings, and the approval state — everything derived from the spec, never a hand-maintained copy that can drift.
+- [MODELS.md](./MODELS.md) — the executable behavioral model layer: the `spec-model` language, exploration, conformance testing through an adapter, the drift heuristics, and the bounds and limits of all three.
 - [SKILL.md](./SKILL.md) — the full authoring procedure agents follow: triage, context gathering, section-by-section writing rules, and the id-hygiene rules for updates.
 - [INSTALL.md](./INSTALL.md) — every way to get spec.md into a project, per agent, flag by flag.
 - [examples/pizza-ts](./examples/pizza-ts) — a runnable reference implementation generated from a single OKF spec, with tagged unit tests and `.http` integration requests that trace back to it.

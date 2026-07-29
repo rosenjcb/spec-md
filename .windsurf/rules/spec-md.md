@@ -1,7 +1,7 @@
 ---
 trigger: glob
 globs: **/*.spec.md
-description: Author or update a *.spec.md file — an Open Knowledge Format spec that captures a system's intent, behavior, and verification so both humans and agents stay aligned. Produces OKF metadata, Intro, Definitions, Scope, Functional Requirements (FR-N), and QA Test Cases (TC-N). Also creates and manages the optional *.review.md sign-off record (stakeholder roles, per-role briefings, approval state).
+description: Author or update a *.spec.md file — an Open Knowledge Format spec that captures a system's intent, behavior, and verification so both humans and agents stay aligned. Produces OKF metadata, Intro, Definitions, Scope, Functional Requirements (FR-N), and QA Test Cases (TC-N). Also writes the optional executable Behavioral Model (MOD-N state transitions, AC-N actions, INV-N invariants, BP-N properties) and the optional *.review.md sign-off record (stakeholder roles, per-role briefings, approval state).
 ---
 
 <!-- GENERATED FROM SKILL.md — do not edit. Run: pnpm run sync (or node scripts/sync-adapters.mjs) -->
@@ -25,19 +25,27 @@ describes.
 - QA reports failures and you need to formalize what "correct" means
 - Code exists but no spec traces intent to implementation and tests
 - You need to align engineering and QA on expected behavior before release
+- Behavior is worth pinning down mechanically, so an implementation change
+  cannot silently redefine it (the Behavioral Model layer)
 - A spec needs stakeholder sign-off, or a sign-off was granted and the
   review record must be updated
 
 ## Step 0: Triage
 
-Before touching files, settle two things. Classify them from the user's
+Before touching files, settle three things. Classify them from the user's
 request and the state of the repo when the signal is clear; ask — one or two
 questions, not a quiz — only when it is not.
 
 1. **Create or update?** Look before asking: a `*.spec.md` already covering
    the domain → update it (Step 1, then **Step 2u**). None → create one
-   (Step 1, then Step 2). The rest (Steps 3–5) applies to both.
-2. **Will it need a review?** Judge the scale of what is being asked:
+   (Step 1, then Step 2). The rest (Steps 2m–5) applies to both.
+2. **Is it worth a behavioral model?** Most specs are not. Write one (Step
+   2m) when the domain has **state that changes over time** and behavior worth
+   protecting mechanically — a lifecycle, a counter, a cart, a state machine —
+   or when the user asks for drift detection or conformance testing. Skip it
+   for pure request/response validation, presentation, and configuration; say
+   so and move on. A model that only restates one `FR-N` earns nothing.
+3. **Will it need a review?** Judge the scale of what is being asked:
    **ambiguity** (could two reasonable people build different things?),
    **blast radius** (how much inherits a mistake?), and **stakeholder
    spread** (does anyone outside the PR need to agree?). Small and
@@ -48,12 +56,13 @@ questions, not a quiz — only when it is not.
 The review decision is made **here, up front**; the record itself is written
 in Step 5, once there is a spec to derive it from.
 
-The critical update rule: **`FR-N` and `TC-N` ids must stay contiguous and
-ascending** — `FR-1..FR-n` and `TC-1..TC-n` in table order, no skips, no
-jumbled mid-table inserts. `spec-md lint` enforces this. Default edit is
-append-only (`n + 1` at the end). Cleanup that reshuffles rows must renumber
-`1..n` in the new order and update every matching `[TC-N]` test tag in the
-same change — never leave gaps or out-of-order ids.
+The critical update rule: **every id sequence must stay contiguous and
+ascending** — `FR-1..FR-n` and `TC-1..TC-n` in table order, and
+`MOD-1..MOD-n` / `AC-1..AC-n` / `INV-1..INV-n` / `BP-1..BP-n` in model order.
+No skips, no jumbled mid-table inserts. `spec-md lint` enforces this. Default
+edit is append-only (`n + 1` at the end). Cleanup that reshuffles rows must
+renumber `1..n` in the new order and update every matching `[TC-N]` test tag
+in the same change — never leave gaps or out-of-order ids.
 
 ## Step 1: Gather context
 
@@ -213,6 +222,73 @@ only what drifted. Apply the same section rules as Step 2, plus:
 - **Finish with lint.** Run `spec-md lint` (or `check`) on the file and fix any
   sequence / duplicate / dangling-reference errors before considering the
   update done.
+- **Keep the model in step.** If the spec has a `### Behavioral Model` and a
+  requirement's behavior changed, update the model in the same edit (Step 2m).
+  `spec-md lint` warns when a requirement names a bound the model does not
+  guard, or when an `[UPDATED]` row's model elements may be stale.
+
+## Step 2m: The behavioral model (only if triage said so)
+
+Skip this entirely unless Step 0 called for it — most specs need no model. The
+full language reference is
+[MODELS.md](https://github.com/rosenjcb/spec.md/blob/main/MODELS.md).
+
+Add a `### Behavioral Model` section holding a fenced ` ```spec-model ` block.
+The **state transition model is primary**; invariants and properties are
+additional claims about it.
+
+````md
+```spec-model
+model: MOD-1 Counter
+adapter: ./model/counter.adapter.mjs
+
+state:
+  count: integer in 0..100 = 0
+
+AC-1 Increment:
+  requirement: FR-1
+  count' = count + 1
+
+AC-2 Decrement:
+  requirement: FR-2
+  requires: count > 0
+  count' = count - 1
+
+INV-1 The counter is never negative:
+  requirement: FR-2
+  check: count >= 0
+
+BP-1 Increment changes the counter by exactly one:
+  requirement: FR-1
+  check: after AC-1, count = count@pre + 1
+```
+````
+
+Rules that matter:
+
+- **Model the abstraction, not the data structure.** State is scalar
+  (`integer`, `number`, `boolean`, `string`) — model `lineCount` and `total`,
+  never the array of items. Pick the smallest state that still says something.
+- **One `AC-N` per operation**, each citing the `FR-N` it implements
+  (`requirement:`). Every right-hand side (`count' = …`) reads the pre-state.
+  Put preconditions in `requires:`; a requirement that says "reject", "must
+  not", or names a maximum almost always means a guard.
+- **`in lo..hi` / `in [a, b]` is an exploration bound, not a requirement.** It
+  picks which starting values and arguments to try and where the walk stops.
+  Never encode a real constraint there — that is what `INV-N` is for.
+- **Write invariants for what must always hold**, properties for the guarantees
+  worth naming. Do not try to enumerate every behavior as a `BP-N`: exploration
+  covers the combinations, so a missing property is not a hole in the contract.
+- **Derive from the code**, exactly as for `FR-N`: if the implementation
+  branches on it, the model should guard on it.
+- **Add an `adapter:`** only when the implementation exists and can be driven
+  from Node. Write the adapter (`init` / `actions` / `observe`) next to the
+  tests, keyed by `AC-N`, and let it translate shapes so the model stays
+  abstract.
+- **Finish by running it**: `spec-md model check <path>` must be clean, and
+  `spec-md model test <path>` too when there is an adapter. A violation is
+  either a wrong model or a wrong implementation — say which, do not loosen the
+  model to make the check pass.
 
 ## Step 3: Link the tests
 
@@ -229,6 +305,13 @@ Coverage is greppable: every `TC-N` in the spec should have at least one
 `[TC-N]` test. A test with no matching row is a signal to add the `TC-N` — or
 tag it `[smoke]` if it is not an acceptance criterion.
 
+A `TC-N` may also cite the model element it exercises, completing the chain
+`FR-1 → BP-1 → AC-1 → TC-1 → [TC-1] test → implementation`:
+
+```md
+| TC-2 | FR-1, AC-1 | Counter at 100, incremented | Counter is 101 |
+```
+
 ## Step 4: Flag gaps
 
 - Mark ambiguous behavior with `??` and call it out.
@@ -236,6 +319,9 @@ tag it `[smoke]` if it is not an acceptance criterion.
 - Flag any `FR-N` with no `TC-N`, and any `TC-N` with no `[TC-N]` test.
 - Flag duplicate ids, skipped numbers, or out-of-order FR/TC rows — fix by
   reordering then renumbering `1..n` and updating `[TC-N]` tags before finishing.
+- When the spec has a model: flag any `BP-N` exploration never exercised, any
+  model element citing no `FR-N`, and any drift warning `spec-md lint` raises
+  between a requirement and the model.
 
 ## Step 5: The review record (only if triage said so)
 
@@ -281,9 +367,13 @@ over Slack or email. Do not build or wire up notification machinery.
 - **Succinct, then deeper.** More prose a reader must wade through, less likely
   they are compelled by the spec. Keep the `*.spec.md` short: intent, scope,
   `FR-N`, `TC-N`. Link out for depth — [TESTING.md](./TESTING.md),
-  [REVIEW.md](./REVIEW.md), examples — instead of pasting checklists or
-  restating companion docs. Each layer earns its place; nothing repeats what
-  the layer above already said.
+  [MODELS.md](./MODELS.md), [REVIEW.md](./REVIEW.md), examples — instead of
+  pasting checklists or restating companion docs. Each layer earns its place;
+  nothing repeats what the layer above already said.
+- **Tests protect examples; a model protects behavior.** `TC-N` rows pin the
+  cases someone thought of. When that is not enough — when a change could
+  silently redefine the product — the model is the layer that makes drift fail
+  a check instead of shipping.
 - **Derive from the code.** If the code branches on it, a requirement and a test
   case should cover it — including null/unknown values.
 - **Concrete over abstract.** Exact inputs and outputs, not descriptions of them.
@@ -292,6 +382,7 @@ over Slack or email. Do not build or wire up notification machinery.
 - **Living, not frozen.** Enough detail to remove ambiguity, not so much rigidity
   that it goes stale. Update `timestamp` and the relevant rows as the system
   evolves rather than rewriting wholesale.
-- **Table hygiene.** After every insert, remove, or edit: tables must stay
-  `FR-1..FR-n` / `TC-1..TC-n` ascending with no skips. Reorder for readability,
-  then renumber and update `[TC-N]` tags when needed. Lint is the gate.
+- **Id hygiene.** After every insert, remove, or edit: every sequence must stay
+  ascending with no skips — `FR-1..FR-n` / `TC-1..TC-n` in the tables,
+  `MOD`/`AC`/`INV`/`BP` in the model. Reorder for readability, then renumber and
+  update `[TC-N]` tags when needed. Lint is the gate.
