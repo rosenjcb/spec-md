@@ -53,13 +53,13 @@ Every spec is written in [Simplified Technical English](#the-language) — one i
 
 ## Motivation
 
-In 2026, humans no longer write most software line by line. AI systems generate or assist frontend applications, backend services, infrastructure, migrations, tests, and documentation.
+In 2026, most software is no longer written line-by-line by humans. Frontend applications, backend services, infrastructure, migrations, tests, and documentation are routinely generated or assisted by AI systems.
 
-This changes the shape of development. Teams now produce working software quickly. Work that took weeks takes hours, and it improves continuously. Implementation speed is no longer the constraint.
+This changes the shape of development. Teams can now produce working software quickly; what used to take weeks can be scaffolded in hours and refined continuously. The constraint is no longer implementation speed.
 
 The constraint is alignment.
 
-When agents produce more of the system, ambiguity costs more. A missing requirement or an unclear rule no longer stays local. It repeats through the code, the tests, the APIs, and the infrastructure that come from the same misunderstanding. Small gaps in understanding cause large drift in the system:
+As more of the system is produced by agents, ambiguity becomes more expensive. A missing requirement or unclear rule no longer stays local — it gets replicated across the code, tests, APIs, and infrastructure generated from the same misunderstanding. Small gaps in understanding lead to large system drift:
 
 * incorrect implementations
 * broken or incomplete test coverage
@@ -68,11 +68,11 @@ When agents produce more of the system, ambiguity costs more. A missing requirem
 * repeated QA cycles
 * rework across multiple services
 
-The faster we generate software, the more we must define *what we mean* before we generate it.
+The faster we generate software, the more important it becomes that we define *what we actually mean* before we generate it.
 
-Modern development already shows this. Requirements appear as teams learn from what they build, and systems change as that understanding improves. The iteration is healthy. The goal is to make it explicit, structured, and easy to share, instead of implicit.
+Modern development already reflects this reality: requirements emerge as teams learn by building, and systems evolve as that understanding improves. That iteration is healthy — the aim is to make it explicit, structured, and shareable instead of leaving it implicit.
 
-spec.md treats software development as a knowledge system shared by Product, Engineering, QA, and AI agents. A spec is not a static requirements document. It is living context that changes with the system it describes. The framework uses and extends the Open Knowledge Format (OKF) to structure that context for humans and agents alike: one consistent, machine-readable model of intent, behavior, and constraints that stays synchronized with the system as the system changes. It is not one more pile of documentation to maintain by hand.
+spec.md treats software development as a shared knowledge system between Product, Engineering, QA, and AI agents. Instead of static requirement documents, specs become living context that evolves alongside the system they describe. The framework uses and extends the Open Knowledge Format (OKF) to structure that context so it can be consumed by both humans and agents — a consistent, machine-readable model of intent, behavior, and constraints that stays synchronized with the system as it changes, rather than another pile of documentation to maintain by hand.
 
 ---
 
@@ -358,7 +358,9 @@ Six rules do most of the work:
 | Prevent post-creation mutation of the order aggregate. | Do not let a user change an order after the system creates it. |
 | Handle bad input gracefully. | Reject a request that has no `customerId`. Return status 400. |
 
-The right-hand column is what `FR-3` and `TC-5` above already look like. [`SKILL.md`](./SKILL.md#the-language-simplified-technical-english) carries these rules into every agent surface, so a spec an agent writes for you arrives in STE by default — and the documents in this repository follow the same rules.
+The right-hand column is what `FR-3` and `TC-5` above already look like. [`SKILL.md`](./SKILL.md#the-language-simplified-technical-english) carries these rules into every agent surface, so a spec an agent writes for you arrives in STE by default.
+
+The rules govern what the toolset produces — specs, review records, and the test names that carry the `[TC-N]` tags — along with the conventions that teach them ([TESTING.md](./TESTING.md), [REVIEW.md](./REVIEW.md), [INSTALL.md](./INSTALL.md)). Prose that makes an argument rather than stating a behavior, like the [Motivation](#motivation) above, is still prose. STE is there to stop a requirement from meaning two things, not to make everything read like a maintenance manual.
 
 ---
 
