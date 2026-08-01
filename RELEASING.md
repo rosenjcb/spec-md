@@ -111,18 +111,18 @@ No separate platform upload. `pnpm run changeset:version` keeps plugin version f
 
 3. **Verify locally:**
    ```bash
-   pnpm run changeset:check -- --base origin/main
+   node scripts/check-changeset-consistency.mjs --base origin/main
    pnpm run publish:check
    pnpm test
    ```
 
 4. **Open PR → merge to `main`.**
 
-5. CI on `main` (`changesets.yml`) tags `v{new-version}` and, in the same run, publishes npm + cuts the GitHub Release.
+5. CI on `main` (`changesets.yml`) tags `v{new-version}`. The same run publishes to npm and creates the GitHub Release.
 
 ### Docs-only / SKILL.md changes
 
-No version bump required if you did not change `cli/` or `action.yml`. Adapters still need `pnpm run sync`.
+You do not need a version bump if you did not change `cli/` or `action.yml`. You must still run `pnpm run sync` for the adapters.
 
 ---
 

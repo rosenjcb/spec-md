@@ -7,73 +7,73 @@ description: The specification for the Orders domain in the pizza-ts example pla
 resource: https://notion.com/read_only_publish_page_location
 review: ./order.review.md
 tags: [pizza, orders, checkout]
-timestamp: 2026-07-09T00:00:00Z
+timestamp: 2026-08-01T00:00:00Z
 ---
 
 ### Intro
 
-The Orders system handles creation and retrieval of customer pizza orders.
+The Orders system creates and retrieves customer pizza orders.
 
-It is the system of record for placed orders. An order is created from a
-validated request, priced from the menu, and stored immutably. Downstream
-concerns such as payment, kitchen routing, and delivery consume orders but are
-not produced here.
+It is the system of record for a placed order. The system creates an order from
+a validated request, prices the order from the menu, and stores it as an
+immutable record. Downstream systems such as payment, kitchen routing, and
+delivery consume an order, but they do not produce one.
 
-Once created, an order is immutable except through explicit cancellation or
-adjustment flows (Out of Scope for this example).
+After the system creates an order, only an explicit cancellation flow or
+adjustment flow can change it. Both flows are Out of Scope for this example.
 
 ### Definitions
 
-- Order: A placed pizza purchase, identified by `id`.
-- Customer: The user who placed the order (`customerId`).
-- Menu Item: A pizza available for purchase, with a `basePrice` in cents.
-- Size: One of `small`, `medium`, `large`; scales the unit price.
-- Order Item: A single line on an order (pizza + size + quantity), priced.
-- Order Total: Sum of all line totals, in cents.
-- Placed At: Timestamp when the order is committed (ISO 8601).
-- Status: Lifecycle state of the order (CREATED, PAID, FULFILLED, CANCELLED).
+- Order: A pizza purchase that a customer placed, identified by `id`.
+- Customer: The person who placed the order (`customerId`).
+- Menu Item: A pizza that a customer can buy, with a `basePrice` in cents.
+- Size: One of `small`, `medium`, or `large`. The size scales the unit price.
+- Order Item: One line on an order — a pizza, a size, and a quantity — with a price.
+- Order Total: The sum of all line totals, in cents.
+- Placed At: The time when the system commits the order (ISO 8601).
+- Status: The lifecycle state of the order (CREATED, PAID, FULFILLED, CANCELLED).
 
 ### Scope
 
 ## In Scope
-- Expose the pizza menu and per-size pricing
-- Create orders from validated requests
-- Price line items from the menu and size multipliers
-- Compute the order total from line items
-- Persist immutable order records for the process lifetime
-- Retrieve an order by id
+- Show the pizza menu and the price for each size
+- Create an order from a validated request
+- Price each line item from the menu and the size multiplier
+- Calculate the order total from the line items
+- Store an immutable order record for the life of the process
+- Retrieve an order by its id
 
 ## Out of Scope
 - Payment authorization and capture
 - Inventory and stock management
 - Delivery, dispatch, and kitchen routing
-- Durable persistence (database)
+- Durable persistence (a database)
 - Authentication and authorization
 
 ### Functional Requirements
 
 | ID   | Requirement |
 |------|------------|
-| FR-1 | Create an order from a request with a customer and at least one item |
-| FR-2 | Compute line and order totals from menu price and size multiplier |
-| FR-3 | Prevent modification of an order after creation |
-| FR-4 | Reject requests missing a customer, items, or with invalid items |
-| FR-5 | Retrieve a previously created order by its id |
+| FR-1 | Create an order from a request that has a customer and one item or more |
+| FR-2 | Calculate each line total and the order total from the menu price and the size multiplier |
+| FR-3 | Reject each change to an order after the system creates it |
+| FR-4 | Reject a request that has no customer, has no items, or has an invalid item |
+| FR-5 | Retrieve an order by its id |
 
 ### QA Test Cases
 
-A requirement is a higher-level statement, validated by **one or more** test
-cases. Here `FR-2` (pricing) owns `TC-2` through `TC-4`, and `FR-4`
-(validation) owns `TC-6` through `TC-8`.
+A requirement is a higher-level statement, and **one test case or more**
+validates it. Here `FR-2` (the price) owns `TC-2` to `TC-4`, and `FR-4`
+(validation) owns `TC-6` to `TC-8`.
 
 | Test ID | Requirement | Scenario | Expected Outcome |
 |---------|------------|----------|------------------|
-| TC-1 | FR-1 | Valid request submitted | Order created with status CREATED |
-| TC-2 | FR-2 | Small pizza priced | Unit price equals the base price |
-| TC-3 | FR-2 | Larger size priced | Unit price scaled by the size multiplier, rounded |
-| TC-4 | FR-2 | Order with several line items | Total sums each line (unit price × quantity) |
-| TC-5 | FR-3 | Mutate returned order object | Stored order is unchanged |
-| TC-6 | FR-4 | Missing customerId | 400 validation error |
-| TC-7 | FR-4 | Empty items list | 400 validation error |
-| TC-8 | FR-4 | Unknown pizza or non-positive quantity | 400 validation error |
-| TC-9 | FR-5 | Fetch existing / unknown id | 200 with order / 404 not found |
+| TC-1 | FR-1 | The customer submits a valid request | The system creates the order with status CREATED |
+| TC-2 | FR-2 | The customer orders a small pizza | The unit price equals the base price |
+| TC-3 | FR-2 | The customer orders a large pizza | The unit price is the base price × the size multiplier, rounded to the cent |
+| TC-4 | FR-2 | The order has two line items | The order total is the sum of the line totals (unit price × quantity) |
+| TC-5 | FR-3 | The caller changes the returned order object | The stored order does not change |
+| TC-6 | FR-4 | The request has no `customerId` | The API returns status 400 |
+| TC-7 | FR-4 | The `items` list is empty | The API returns status 400 |
+| TC-8 | FR-4 | The request names an unknown pizza, or a quantity of zero or less | The API returns status 400 |
+| TC-9 | FR-5 | The client requests a known id, then an unknown id | The API returns 200 with the order, then 404 |

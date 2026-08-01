@@ -26,14 +26,14 @@ describe("pizza-ts HTTP API", () => {
     );
   });
 
-  it("[TC-2] Given a running server, when GET /menu, then the catalogue is returned", async () => {
+  it("[TC-2] Given a running server, when the client gets /menu, then the API returns the menu", async () => {
     const res = await fetch(`${baseUrl}/menu`);
     expect(res.status).toBe(200);
     const body = (await res.json()) as { items: unknown[] };
     expect(body.items.length).toBeGreaterThan(0);
   });
 
-  it("[TC-1] Given a valid request, when POST /orders then GET /orders/:id, then the order is created and read back", async () => {
+  it("[TC-1] Given a valid request, when the client posts to /orders and gets the order, then the API creates the order and returns it", async () => {
     const create = await fetch(`${baseUrl}/orders`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -52,7 +52,7 @@ describe("pizza-ts HTTP API", () => {
     expect(fetched.id).toBe(created.id);
   });
 
-  it("[TC-6] Given an invalid request, when POST /orders, then 400 is returned", async () => {
+  it("[TC-6] Given an invalid request, when the client posts to /orders, then the API returns 400", async () => {
     const res = await fetch(`${baseUrl}/orders`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -61,7 +61,7 @@ describe("pizza-ts HTTP API", () => {
     expect(res.status).toBe(400);
   });
 
-  it("[TC-9] Given an unknown id, when GET /orders/:id, then 404 is returned", async () => {
+  it("[TC-9] Given an unknown id, when the client gets the order, then the API returns 404", async () => {
     const res = await fetch(`${baseUrl}/orders/nope`);
     expect(res.status).toBe(404);
   });

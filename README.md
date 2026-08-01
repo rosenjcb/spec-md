@@ -9,7 +9,7 @@
 <p><em>The constraint is no longer implementation speed.<br />The constraint is alignment.</em></p>
 
 <p>
-  <img src="https://img.shields.io/badge/version-0.3.5-6366F1" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.3.6-6366F1" alt="Version" />
   <img src="https://img.shields.io/badge/status-draft-8B5CF6" alt="Status: draft" />
   <img src="https://img.shields.io/badge/built%20on-Open%20Knowledge%20Format-22C55E" alt="Built on Open Knowledge Format" />
 </p>
@@ -22,11 +22,13 @@
 
 | Piece | What it is | What it gives you |
 |-------|------------|-------------------|
-| **The format** | `*.spec.md` — structured Markdown (an [Open Knowledge Format](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing) extension) with numbered Functional Requirements (`FR-N`) and QA Test Cases (`TC-N`) | One authoritative, machine-readable description of what a system should do |
-| **The skill** | `/spec-md` — authoring guidance installed into Claude Code, Cursor, Codex, Windsurf, Cline, or Copilot | Your agent writes and maintains specs the same way every time, instead of inventing structure |
+| **The format** | `*.spec.md` — structured Markdown (an [Open Knowledge Format](https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing) extension) with numbered Functional Requirements (`FR-N`) and QA Test Cases (`TC-N`) | One authoritative, machine-readable description of what a system must do |
+| **The skill** | `/spec-md` — authoring guidance installed into Claude Code, Cursor, Codex, Windsurf, Cline, or Copilot | Your agent writes and maintains specs the same way every time, instead of a structure it invents |
 | **The tooling** | the [`spec-md` CLI](./cli) and a [GitHub Action](./action.yml) | Specs become checkable artifacts: lint the structure, fail CI when a test case loses its test |
 
-The core loop: **describe behavior once in the spec → build the implementation and tests against it → tag every test with the `[TC-N]` it proves → let CI fail when spec and system drift apart.**
+The core loop: **describe behavior once in the spec → build the implementation and the tests against it → tag every test with the `[TC-N]` it proves → let CI fail when the spec and the system drift apart.**
+
+Every spec is written in [Simplified Technical English](#the-language) — one idea per sentence, active voice, one word for one thing — so a requirement means the same to a product manager, a QA engineer, and an agent.
 
 ## Contents
 
@@ -37,6 +39,7 @@ The core loop: **describe behavior once in the spec → build the implementation
 - [The commands](#the-commands)
 - [The workflow](#the-workflow)
 - [Anatomy of a spec](#anatomy-of-a-spec)
+- [The language](#the-language)
 - [The `[TC-N]` join key](#the-tc-n-join-key)
 - [Keeping a spec alive](#keeping-a-spec-alive)
 - [Review & sign-off](#review--sign-off)
@@ -50,13 +53,13 @@ The core loop: **describe behavior once in the spec → build the implementation
 
 ## Motivation
 
-In 2026, most software is no longer written line-by-line by humans. Frontend applications, backend services, infrastructure, migrations, tests, and documentation are routinely generated or assisted by AI systems.
+In 2026, humans no longer write most software line by line. AI systems generate or assist frontend applications, backend services, infrastructure, migrations, tests, and documentation.
 
-This changes the shape of development. Teams can now produce working software quickly; what used to take weeks can be scaffolded in hours and refined continuously. The constraint is no longer implementation speed.
+This changes the shape of development. Teams now produce working software quickly. Work that took weeks takes hours, and it improves continuously. Implementation speed is no longer the constraint.
 
 The constraint is alignment.
 
-As more of the system is produced by agents, ambiguity becomes more expensive. A missing requirement or unclear rule no longer stays local — it gets replicated across the code, tests, APIs, and infrastructure generated from the same misunderstanding. Small gaps in understanding lead to large system drift:
+When agents produce more of the system, ambiguity costs more. A missing requirement or an unclear rule no longer stays local. It repeats through the code, the tests, the APIs, and the infrastructure that come from the same misunderstanding. Small gaps in understanding cause large drift in the system:
 
 * incorrect implementations
 * broken or incomplete test coverage
@@ -65,17 +68,17 @@ As more of the system is produced by agents, ambiguity becomes more expensive. A
 * repeated QA cycles
 * rework across multiple services
 
-The faster we generate software, the more important it becomes that we define *what we actually mean* before we generate it.
+The faster we generate software, the more we must define *what we mean* before we generate it.
 
-Modern development already reflects this reality: requirements emerge as teams learn by building, and systems evolve as that understanding improves. That iteration is healthy — the aim is to make it explicit, structured, and shareable instead of leaving it implicit.
+Modern development already shows this. Requirements appear as teams learn from what they build, and systems change as that understanding improves. The iteration is healthy. The goal is to make it explicit, structured, and easy to share, instead of implicit.
 
-spec.md treats software development as a shared knowledge system between Product, Engineering, QA, and AI agents. Instead of static requirement documents, specs become living context that evolves alongside the system they describe. The framework uses and extends the Open Knowledge Format (OKF) to structure that context so it can be consumed by both humans and agents — a consistent, machine-readable model of intent, behavior, and constraints that stays synchronized with the system as it changes, rather than another pile of documentation to maintain by hand.
+spec.md treats software development as a knowledge system shared by Product, Engineering, QA, and AI agents. A spec is not a static requirements document. It is living context that changes with the system it describes. The framework uses and extends the Open Knowledge Format (OKF) to structure that context for humans and agents alike: one consistent, machine-readable model of intent, behavior, and constraints that stays synchronized with the system as the system changes. It is not one more pile of documentation to maintain by hand.
 
 ---
 
 ## How it works
 
-A `*.spec.md` file describes one domain of your system: its purpose, boundaries, requirements (`FR-N`), and the concrete test cases that prove them (`TC-N`). Each test in your suite carries a bracketed `[TC-N]` prefix in its name, linking it back to the spec row it validates. The `spec-md` CLI cross-references the two, so "does the system still do what the spec says?" becomes a CI check instead of a meeting.
+A `*.spec.md` file describes one domain of your system: its purpose, its boundaries, its requirements (`FR-N`), and the concrete test cases that prove them (`TC-N`). Each test in your suite carries a bracketed `[TC-N]` prefix in its name, which links the test back to the spec row it validates. The `spec-md` CLI cross-references the two. "Does the system still do what the spec says?" becomes a CI check instead of a meeting.
 
 ```mermaid
 flowchart LR
@@ -90,7 +93,7 @@ flowchart LR
     ship -. "system evolves,<br/>QA finds gaps" .-> spec
 ```
 
-The spec is **living**: when behavior changes, the spec rows change with it (marked `[NEW]` / `[UPDATED]` / `[REMOVED]`), and lint keeps the ids honest. Nothing freezes; drift just becomes visible.
+The spec is **living**. When behavior changes, the spec rows change with it — marked `[NEW]`, `[UPDATED]`, or `[REMOVED]` — and lint verifies the ids. Nothing is fixed in place. The drift only becomes visible.
 
 ---
 
@@ -132,7 +135,7 @@ From zero to a checked spec, with an agent doing the writing:
 # 1. Install (pick your surface above), then in your agent:
 /spec-md orders
 
-#    The skill triages first — is there already a spec covering this domain?
+#    The skill triages first — is there already a spec for this domain?
 #    It reads your code and docs, then writes (or updates) order.spec.md:
 #    Intro, Definitions, Scope, FR-N requirements, TC-N test cases.
 
@@ -168,7 +171,7 @@ A complete, runnable end-to-end example — spec, code, tagged unit tests, tagge
 
 | Command | Available in | What it does |
 |---------|--------------|--------------|
-| `/spec-md <domain or request>` | Every installed agent (it is the skill itself) | Author **or** update a spec — the skill triages which. It reads the code first and derives the spec from it: branching logic becomes `FR-N` rows, edge cases become `TC-N` rows, and `sources`/`tests` paths get wired up. It also decides (and asks, when unclear) whether the change warrants a [review record](#review--sign-off), and finishes by linting. |
+| `/spec-md <domain or request>` | Every installed agent (it is the skill itself) | Author **or** update a spec — the skill triages which. It reads the code first and derives the spec from it: branching logic becomes `FR-N` rows, edge cases become `TC-N` rows, and it wires up the `sources` and `tests` paths. It also decides whether the change needs a [review record](#review--sign-off), and asks you when that is unclear. It lints the spec at the end. |
 | `/spec-md:check [path]` | Claude Code plugin | Validate every spec under the path (default: whole repo) — frontmatter, unique/contiguous/ascending `FR-N`/`TC-N` ids, `TC→FR` references, resolvable `sources`/`tests` paths. Reports errors grouped by file and proposes fixes; it does not edit specs unless you ask. |
 | `/spec-md:coverage [path]` | Claude Code plugin | Cross-reference each `TC-N` row against the `[TC-N]` tags in the spec's `tests` paths. Lists uncovered test cases, flags orphan tags (a `[TC-N]` in the suite that no spec declares), and recommends the concrete next step for each gap. |
 
@@ -238,9 +241,9 @@ sequenceDiagram
 
 The same machinery serves three common situations:
 
-- **New feature, spec first.** Run `/spec-md <domain>` before writing code. The spec becomes the brief the agent implements from, and the `TC-N` table becomes the test plan. This is where specs pay off most — ambiguity is resolved *before* it gets replicated into code.
-- **Existing code, no spec.** Point `/spec-md` at a domain that already works. The skill derives the spec *from the code* — branching logic and validation become `FR-N` rows — then `spec-md coverage` shows exactly which behaviors have no proving test.
-- **QA failure / bug report.** First decide which artifact is wrong. If the spec already describes correct behavior, the *code* drifted: fix the code and keep the `[TC-N]` test honest — no spec change needed. If the *spec* was wrong, update the rows in place, mark them `[UPDATED]`, and let `check` re-verify. The full decision tree — including when a change deserves a review round — is the flowchart in [REVIEW.md](./REVIEW.md#when-a-review-is-warranted).
+- **New feature, spec first.** Run `/spec-md <domain>` before you write code. The spec becomes the brief the agent implements from, and the `TC-N` table becomes the test plan. A spec gives the most value here, because you remove the ambiguity *before* it repeats through the code.
+- **Existing code, no spec.** Point `/spec-md` at a domain that already works. The skill derives the spec *from the code* — branching logic and validation become `FR-N` rows. Then `spec-md coverage` shows which behaviors have no test to prove them.
+- **QA failure or bug report.** First decide which artifact is wrong. If the spec already describes the correct behavior, the *code* drifted: correct the code and keep the `[TC-N]` test accurate. The spec does not change. If the *spec* was wrong, update the rows in place, mark them `[UPDATED]`, and run `check` again. The full decision tree, including when a change needs a review round, is the flowchart in [REVIEW.md](./REVIEW.md#when-a-review-is-warranted).
 
 ---
 
@@ -260,21 +263,21 @@ timestamp: 2026-07-26T00:00:00Z
 
 ### Intro
 
-The Orders system handles creation and retrieval of customer orders. It is
-the system of record for placed orders; once created, an order is immutable
-except through explicit refund flows.
+The Orders system creates and retrieves customer orders. It is the system of
+record for a placed order. After the system creates an order, only an explicit
+refund flow can change it.
 
 ### Definitions
 
 - Order: A completed purchase transaction, identified by `id`.
-- Order Total: Sum of all line totals, in cents.
-- Status: Lifecycle state (CREATED, PAID, FULFILLED, REFUNDED).
+- Order Total: The sum of all line totals, in cents.
+- Status: The lifecycle state (CREATED, PAID, FULFILLED, REFUNDED).
 
 ### Scope
 
 ## In Scope
-- Create orders from validated requests
-- Compute totals from line items
+- Create an order from a validated request
+- Calculate the totals from the line items
 
 ## Out of Scope
 - Payment authorization
@@ -284,20 +287,20 @@ except through explicit refund flows.
 
 | ID   | Requirement |
 |------|-------------|
-| FR-1 | Create an order from a request with a customer and at least one item |
-| FR-2 | Compute line and order totals from price and size multiplier |
-| FR-3 | Prevent modification of an order after creation |
-| FR-4 | Reject requests missing a customer or with invalid items |
+| FR-1 | Create an order from a request that has a customer and one item or more |
+| FR-2 | Calculate each line total and the order total from the price and the size multiplier |
+| FR-3 | Reject each change to an order after the system creates it |
+| FR-4 | Reject a request that has no customer or has an invalid item |
 
 ### QA Test Cases
 
 | Test ID | Requirement | Scenario | Expected Outcome |
 |---------|-------------|----------|------------------|
-| TC-1 | FR-1 | Valid request submitted | Order created with status CREATED |
-| TC-2 | FR-2 | Larger size priced | Unit price scaled by multiplier, rounded |
-| TC-3 | FR-2 | Order with several line items | Total sums each line |
-| TC-4 | FR-3 | Mutate returned order object | Stored order is unchanged |
-| TC-5 | FR-4 | Missing customerId | 400 validation error |
+| TC-1 | FR-1 | The customer submits a valid request | The system creates the order with status CREATED |
+| TC-2 | FR-2 | The customer orders a large size | The unit price is the base price × 1.6, rounded to the cent |
+| TC-3 | FR-2 | The order has three line items | The order total is the sum of the three line totals |
+| TC-4 | FR-3 | The caller changes the returned order object | The stored order does not change |
+| TC-5 | FR-4 | The request has no `customerId` | The API returns status 400 |
 ```
 
 ### Frontmatter
@@ -332,27 +335,50 @@ Only `type` and `title` are required; add the rest as the spec matures.
 
 A requirement expresses higher-level intent; the test cases are the concrete checks that prove it — so a single `FR-N` usually owns **several** `TC-N` rows. Above, `FR-2` (pricing) is proven by both `TC-2` (size multiplier) and `TC-3` (multiple line items), and a real pricing requirement might add cases for rounding and currency. The `Requirement` column is what keeps that fan-out traceable.
 
-This is also the format's natural tension: a spec needs enough detail to remove ambiguity, but not so much rigidity that it goes stale as the system evolves. Cover the happy path first, then edge cases, then error conditions — and let the spec track how understanding changes rather than trying to freeze it.
+This is also the natural tension in the format. A spec needs enough detail to remove ambiguity, but not so much rigidity that it goes stale as the system changes. Cover the happy path first, then the edge cases, then the error conditions. Let the spec record how the understanding changes instead of fixing it in place.
+
+---
+
+## The language
+
+Specs are written in **[ASD-STE100 Simplified Technical English](https://www.asd-ste100.org/)** (STE) — the controlled-English standard the aerospace industry wrote so that one maintenance procedure means one thing to every reader. A spec has the same problem: Product, Engineering, QA, and agents all act on the same sentence, and many of those readers do not speak English as a first language.
+
+Six rules do most of the work:
+
+1. **One idea per sentence** — 20 words for a requirement, 25 for descriptive text.
+2. **Active voice, simple tense.**
+3. **One word, one meaning** — the same name for the same thing every time.
+4. **No `-ing` forms**, unless the word is a technical name (`routing key`).
+5. **Plain words** — `use`, not `utilize`.
+6. **No idiom, metaphor, or humor.**
+
+| Instead of | Write |
+|------------|-------|
+| Orders that have been submitted are subsequently priced by the pricing engine utilizing the applicable multipliers. | The pricing engine prices a submitted order. It multiplies the base price by the size multiplier. |
+| Prevent post-creation mutation of the order aggregate. | Do not let a user change an order after the system creates it. |
+| Handle bad input gracefully. | Reject a request that has no `customerId`. Return status 400. |
+
+The right-hand column is what `FR-3` and `TC-5` above already look like. [`SKILL.md`](./SKILL.md#the-language-simplified-technical-english) carries these rules into every agent surface, so a spec an agent writes for you arrives in STE by default — and the documents in this repository follow the same rules.
 
 ---
 
 ## The `[TC-N]` join key
 
-Every `TC-N` row becomes real through a test whose **name carries the tag as a bracketed prefix**. That tag is the entire contract between spec and suite — the join key the tooling greps for:
+Every `TC-N` row becomes real through a test whose **name carries the tag as a bracketed prefix**. That tag is the whole contract between the spec and the suite — the join key the tooling greps for:
 
 ```ts
 // test/orders.test.ts
-it("[TC-5] Given a request without a customerId, when the order is created, then a ValidationError is thrown", () => {
+it("[TC-5] Given a request with no customerId, when the store creates the order, then it throws a ValidationError", () => {
   expect(() => store.create({ customerId: "", items: [/* … */] })).toThrow(ValidationError);
 });
 ```
 
-The convention is runner-agnostic — the same tag works in a Vitest name, a JUnit display name, or an `.http` request assertion. Gherkin *Given / When / Then* phrasing is suggested (it forces each test to name its precondition, action, and outcome) but not required; `[TC-5] returns 404 for an unknown order id` is equally valid. One `TC-N` may have many tests — a unit test proving the logic and an integration test proving the wiring both point at the same row.
+The convention does not depend on the runner. The same tag works in a Vitest name, a JUnit display name, or an `.http` request assertion. We suggest Gherkin *Given / When / Then* phrasing, because it makes each test name its precondition, its action, and its outcome. It is not a requirement: `[TC-5] returns 404 for an unknown order id` is equally valid. One `TC-N` can have many tests — a unit test that proves the logic and an integration test that proves the wiring both point at the same row.
 
-`spec-md coverage` reads each spec's `tests` paths, scans them for tags, and reports the match:
+`spec-md coverage` reads the `tests` paths of each spec, scans them for tags, and reports the match:
 
 - an **uncovered `TC-N`** means the spec promises a check that nothing performs — write the test;
-- an **orphan `[TC-N]`** means the suite verifies behavior the spec never declared — add the row, or retag it `[smoke]` if it is not an acceptance criterion.
+- an **orphan `[TC-N]`** means the suite verifies behavior that the spec never declared — add the row, or tag the test `[smoke]` if it is not an acceptance criterion.
 
 The full convention, including `.http` integration requests: **[TESTING.md](./TESTING.md)**.
 
@@ -360,26 +386,26 @@ The full convention, including `.http` integration requests: **[TESTING.md](./TE
 
 ## Keeping a spec alive
 
-Specs are updated in place, and the ids are load-bearing — `[TC-N]` tags in the test suite point at them. The update rules (enforced by `spec-md lint`, fully specified in [`SKILL.md`](./SKILL.md)):
+You update a spec in place, and the ids carry the load, because the `[TC-N]` tags in the test suite point at them. The update rules (`spec-md lint` enforces them, and [`SKILL.md`](./SKILL.md) specifies them in full):
 
-- **Ids stay contiguous and ascending** — every table is exactly `FR-1..FR-n` / `TC-1..TC-n` in row order, no skips.
-- **New rows append** at the end as `n + 1`; never invent a mid-range id or reuse a live one.
-- **Changed behavior edits the row's text**, not its number.
-- **Removed behavior is marked `[REMOVED]`** (keeping its index) rather than silently deleted; once nothing references it, delete and renumber `1..n` — updating every `[TC-N]` test tag in the same change.
-- **`[NEW]` / `[UPDATED]` markers** flag rows while a change is in review, and drop once merged.
-- **`timestamp` bumps** on every update.
+- **Ids stay contiguous and ascending** — every table is exactly `FR-1..FR-n` / `TC-1..TC-n` in row order, with no gaps.
+- **A new row goes at the end** as `n + 1`. Never invent an id in the middle of the range, and never reuse an id that is in use.
+- **Changed behavior edits the text of the row**, not its number.
+- **Removed behavior gets a `[REMOVED]` marker** and keeps its index. Do not delete it silently. When nothing refers to it, delete the row and renumber `1..n`, and update every `[TC-N]` test tag in the same change.
+- **`[NEW]` and `[UPDATED]` markers** flag a row while a change is in review. Remove them after the merge.
+- **`timestamp` changes** on every update.
 
-Renumbering and tag-updating is mechanical and cross-file — exactly the kind of chore `/spec-md` handles for you, with `spec-md lint` as the gate.
+The renumber and the tag updates are mechanical, and they cross files. This is the work `/spec-md` does for you, with `spec-md lint` as the gate.
 
 ---
 
 ## Review & sign-off
 
-Most specs need no review — ordinary PR review carries small, unambiguous changes. When a change is **ambiguous** (two reasonable people could build different things), has a wide **blast radius**, or needs agreement from **stakeholders outside the PR**, the spec gains a sign-off record: a `*.review.md` file beside it (`order.spec.md` → `order.review.md`), linked from the spec's `review` key.
+Most specs need no review, because ordinary PR review carries a small, unambiguous change. A spec gains a sign-off record when the change is **ambiguous** (two reasonable people could build different things), has a wide **impact**, or needs agreement from **stakeholders outside the PR**. The record is a `*.review.md` file beside the spec (`order.spec.md` → `order.review.md`), linked from the `review` key of the spec.
 
-The record carries who holds each role (driver, approvers, contributors, informed — [DACI](https://www.atlassian.com/team-playbook/plays/daci)), what kind of review it is (`notice` for awareness, `signoff` for accountability), which milestone it gates (`kickoff`, `pre-build`, `pre-release`), and the approval state (`open` → `approved` / `rejected`). Each stakeholder gets a **briefing derived from the spec** for their role — never a hand-maintained restatement that can drift, never a bare "please read the spec".
+The record states who holds each role (driver, approvers, contributors, informed — [DACI](https://www.atlassian.com/team-playbook/plays/daci)), which kind of review it is (`notice` for awareness, `signoff` for accountability), which milestone it gates (`kickoff`, `pre-build`, `pre-release`), and the approval state (`open` → `approved` or `rejected`). Each stakeholder gets a **briefing derived from the spec** for their role. It is never a restatement maintained by hand, which can drift, and never a bare "please read the spec".
 
-Because the record is a file with a `status`, review becomes a merge gate when you want one:
+The record is a file with a `status`, so a review becomes a merge gate when you want one:
 
 ```bash
 npx @rosenjcb/spec-md check --require-approved
@@ -422,7 +448,7 @@ Or skip the action and run the CLI directly:
 
 ## Who reads a spec
 
-A spec is the authoritative description of a system — what it does, why it exists, and how it should behave. In practice it serves different roles depending on who is using it:
+A spec is the authoritative description of a system — what it does, why it exists, and how it must behave. It serves each role differently:
 
 | Audience | The spec gives them |
 |----------|---------------------|
@@ -432,7 +458,7 @@ A spec is the authoritative description of a system — what it does, why it exi
 | **QA** | Expected behavior, acceptance criteria (`TC-N`), failure conditions, and regression coverage. |
 | **AI agents** | Executable context — what to build, what *not* to build, how components should behave, and how to validate correctness. |
 
-Beyond describing a feature, a spec is a shared model of the system that connects intent to implementation.
+A spec does more than describe a feature. It is a shared model of the system that connects intent to implementation.
 
 ---
 
@@ -468,8 +494,8 @@ One or the other, not both — installing both duplicates the `/spec-md` entry. 
 **A test in my suite has no matching `TC-N` row. Is that a failure?**
 It is a signal: either the spec is missing a row (add it — the behavior is evidently worth verifying) or the test is not an acceptance criterion (tag it `[smoke]` instead).
 
-**Does an approved review freeze the spec?**
-No. `status: approved` records that a review round concluded; the spec keeps living. The driver decides when a later change warrants re-review — `[NEW]` / `[UPDATED]` markers make "what changed since you signed" cheap to communicate.
+**Does an approved review lock the spec?**
+No. `status: approved` records that a review round finished. The spec keeps living. The driver decides when a later change needs a new review, and the `[NEW]` and `[UPDATED]` markers make "what changed since you signed" cheap to communicate.
 
 **What is OKF?**
 The [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) — Markdown documents with typed YAML frontmatter, designed to be consumed by humans and agents alike. spec.md extends it with the `Spec` and `Review` document types.
@@ -480,7 +506,7 @@ The [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-cat
 
 - [TESTING.md](./TESTING.md) — how tests relate to a `*.spec.md`. Covers unit and integration tests and the `[TC-N]` tag convention embedded in the test name, where the tag links each test back to a QA Test Case in the spec. Suggests (but does not require) Gherkin **Given / When / Then** phrasing.
 - [REVIEW.md](./REVIEW.md) — how a spec gets reviewed and signed off. A `*.review.md` record beside the spec (OKF `type: Review`) carries the roles, per-stakeholder briefings, and the approval state — everything derived from the spec, never a hand-maintained copy that can drift.
-- [SKILL.md](./SKILL.md) — the full authoring procedure agents follow: triage, context gathering, section-by-section writing rules, and the id-hygiene rules for updates.
+- [SKILL.md](./SKILL.md) — the full procedure an agent follows: triage, context gathering, the Simplified Technical English rules, the writing rules for each section, and the id rules for an update.
 - [INSTALL.md](./INSTALL.md) — every way to get spec.md into a project, per agent, flag by flag.
 - [examples/pizza-ts](./examples/pizza-ts) — a runnable reference implementation generated from a single OKF spec, with tagged unit tests and `.http` integration requests that trace back to it.
 
@@ -488,3 +514,4 @@ The [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-cat
 
 - Google Cloud Blog: How the Open Knowledge Format can improve data sharing: https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing
 - GoogleCloudPlatform OKF Spec: https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
+- ASD-STE100 Simplified Technical English: https://www.asd-ste100.org/

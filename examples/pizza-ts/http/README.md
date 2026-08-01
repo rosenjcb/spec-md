@@ -1,17 +1,17 @@
 # http/ — integration requests
 
-Live HTTP requests against a running `pizza-ts` server. These double as
-integration tests: each request asserts the response, and the assertions map
-back to the QA Test Cases in [`../specs/order.spec.md`](../specs/order.spec.md).
+Live HTTP requests against a running `pizza-ts` server. They are also the
+integration tests: each request asserts the response, and each assertion maps
+back to a QA Test Case in [`../specs/order.spec.md`](../specs/order.spec.md).
 
 ## Files
 
 - `orders.http` — the request collection (`.http` format).
 - `http-client.env.json` — environments (the IntelliJ HTTP Client format).
 
-Both the **IntelliJ HTTP Client** and **httpyac** read `http-client.env.json`
-natively, so the `{{host}}` variable resolves in either tool from the same JSON
-file — no extra config needed.
+The **IntelliJ HTTP Client** and **httpyac** both read `http-client.env.json`
+directly. The `{{host}}` variable therefore resolves in either tool from the
+same JSON file, and you configure nothing else.
 
 ## Running
 
@@ -44,4 +44,7 @@ Install the **httpyac** extension, open `orders.http`, and use "Send All" /
 ## Note on format
 
 Only [`../specs/order.spec.md`](../specs/order.spec.md) follows the OKF/spec.md
-format. These READMEs and the `.http` files are plain developer documentation.
+format. These READMEs are plain developer documentation. The `.http` files are
+too, but the test names in them use the same
+[Simplified Technical English](../../../README.md#the-language) as the spec
+rows they prove.
