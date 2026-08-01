@@ -6,13 +6,15 @@
 
 </div>
 
-spec.md ships in two layers you can mix and match:
+spec.md ships in two layers, and you can use one or both:
 
 1. **The skill** — the authoring guidance that teaches an agent to write and
-   maintain `*.spec.md` files. Same content, packaged for each agent as
-   `spec-md` (invoke as `/spec-md`).
-2. **The CLI** — `spec-md`, a zero-dependency validator/coverage tool that makes
-   specs enforceable in CI.
+   maintain `*.spec.md` files, in the sections, the id rules, and the
+   [Simplified Technical English](./README.md#the-language) house style of the
+   standard. It is the same content, packaged for each agent as `spec-md`
+   (invoke it as `/spec-md`).
+2. **The CLI** — `spec-md`, a validator and coverage tool with no dependencies,
+   which makes specs enforceable in CI.
 
 | You use… | Install |
 |----------|---------|
@@ -24,8 +26,9 @@ spec.md ships in two layers you can mix and match:
 | **CI / command line** | `npm i -D @rosenjcb/spec-md` · `npx @rosenjcb/spec-md check` |
 
 Default `curl … \| bash` = Claude skill (global) + `AGENTS.md` + `.agents/skills/spec-md`.
-Use `--all` or explicit flags for the other agents. Prefer **plugin XOR skill-only**
-for Claude — not both (duplicate `/spec-md` entries).
+Use `--all` or explicit flags for the other agents. For Claude, install **the
+plugin or the skill, but not both**, because both together give you duplicate
+`/spec-md` entries.
 
 ---
 
@@ -47,8 +50,8 @@ Then in any session:
 /spec-md:coverage           # which TC-N are missing a [TC-N] test?
 ```
 
-Authoring is `/spec-md`. Claude may also list a namespaced form of the same
-skill; use the bare `/spec-md`. Do not install the skill a second time via
+Use `/spec-md` to author a spec. Claude can also list a namespaced form of the
+same skill. Use the bare `/spec-md`. Do not install the skill a second time with
 `install.sh --claude` if the plugin is already enabled.
 
 ## 2. Claude Code skill only
@@ -91,9 +94,10 @@ irm https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.ps1 | iex
 ./install.ps1 -All
 ```
 
-Prefer to commit the files yourself? They live in this repo under
+Do you prefer to commit the files yourself? They are in this repo under
 `.agents/skills/spec-md/`, `.cursor/`, `.windsurf/`, `.clinerules/`,
-`.github/`, and `AGENTS.md`. All generated from root `SKILL.md`.
+`.github/`, and `AGENTS.md`. The sync script generates all of them from the
+root `SKILL.md`.
 
 `.agents/skills/` is the [Agent Skills](https://agentskills.io) path — Cursor and
 Codex both load it. There is no nested Claude `skills/spec-md/` directory in the
@@ -153,7 +157,7 @@ pnpm run sync         # regenerate every adapter from SKILL.md
 pnpm run sync:check   # verify they are up to date (runs in CI)
 ```
 
-Never edit a generated file by hand — change `SKILL.md` and re-run `pnpm run sync`.
-Do not reintroduce `skills/<name>/` under the plugin root.
+Never edit a generated file by hand. Change `SKILL.md` and run `pnpm run sync`
+again. Do not add a `skills/<name>/` directory under the plugin root.
 
 Releases (npm, tags, GitHub Action): see **[RELEASING.md](./RELEASING.md)**.

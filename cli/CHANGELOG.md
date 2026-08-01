@@ -1,5 +1,11 @@
 # @rosenjcb/spec-md
 
+## 0.3.6
+
+### Patch Changes
+
+- Adopt ASD-STE100 Simplified Technical English as the house style for spec prose. The `spec-md new` scaffold now states the rules inline, and the skill, the docs, and the pizza-ts example are written to them.
+
 ## 0.3.5
 
 ### Patch Changes

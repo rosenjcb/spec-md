@@ -12,8 +12,7 @@ Run the spec-md linter:
 npx @rosenjcb/spec-md lint ${ARGUMENTS:-.}
 ```
 
-If `spec-md` is not installed, fall back to reading each `*.spec.md` and checking
-by hand:
+If `spec-md` is not installed, read each `*.spec.md` and check it by hand:
 
 - Frontmatter has `type: Spec` and a `title`.
 - `FR-N` and `TC-N` ids are unique, well-formed, **contiguous**, and
@@ -21,6 +20,6 @@ by hand:
 - Every `TC-N` cites a `Requirement` that exists as an `FR-N` row.
 - `sources`/`tests` paths resolve on disk.
 
-Report the results grouped by file. For each **error**, propose the fix
-(reorder then renumber `1..n`, updating `[TC-N]` tags when ids change). Do not
-edit specs unless I ask; summarize first.
+Group the results by file. For each **error**, propose the fix: reorder the
+rows, renumber them `1..n`, and update the `[TC-N]` tags when the ids change.
+Do not edit a spec unless I ask. Summarize first.
