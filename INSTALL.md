@@ -64,7 +64,7 @@ Authoring guidance without the plugin commands — copies into
 curl -fsSL https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.sh | bash
 
 # project-local Claude skill only:
-./install.sh --claude --local
+curl -fsSL https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.sh | bash -s -- --claude --local
 ```
 
 ## 3. Cursor, Codex, and other agents
@@ -80,10 +80,22 @@ Same skill id everywhere: **`spec-md`** → invoke as **`/spec-md`**.
 | `--copilot` | `.github/copilot-instructions.md` |
 | `--all` | every row above (+ Claude skill) |
 
+The `./install.sh` form assumes you have the script locally. Download it once,
+make it executable, then run it with whatever flags you want:
+
 ```bash
+curl -fsSL https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.sh -o install.sh
+chmod +x install.sh
 ./install.sh --cursor
 ./install.sh --agents
 ./install.sh --all
+```
+
+Prefer a one-liner? Pipe the flags straight through `bash` — no download step:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.sh | bash -s -- --cursor
+curl -fsSL https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.sh | bash -s -- --all
 ```
 
 Windows (PowerShell):
