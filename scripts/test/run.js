@@ -69,7 +69,7 @@ function writePublishFixture(dir, version, overrides = {}) {
   )
   writeFileSync(
     join(dir, 'package.json'),
-    `${JSON.stringify({ name: 'spec.md', version: overrides.rootVersion ?? version }, null, 2)}\n`
+    `${JSON.stringify({ name: 'spec-md', version: overrides.rootVersion ?? version }, null, 2)}\n`
   )
   writeFileSync(
     join(dir, '.claude-plugin/plugin.json'),

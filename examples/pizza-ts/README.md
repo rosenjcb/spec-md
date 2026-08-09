@@ -1,6 +1,6 @@
 # pizza-ts
 
-A small reference example for the **spec.md** standard, with few dependencies.
+A small reference example for the **spec-md** standard, with few dependencies.
 
 It implements a pizza order API directly from one OKF spec —
 [`specs/order.spec.md`](specs/order.spec.md) — and shows how the Functional
@@ -8,9 +8,9 @@ Requirements (FR-*) and the QA Test Cases (TC-*) of the spec trace into the
 code, the unit tests, and the live HTTP integration requests.
 
 > The documents under `specs/` (`order.spec.md`, `order.review.md`) follow the
-> OKF/spec.md format, and they are written in
+> OKF/spec-md format, and they are written in
 > [Simplified Technical English](../../README.md#the-language) — as are the
-> test names that carry the `[TC-N]` tags. The READMEs here are ordinary
+> test names that carry the `[TC-XXXX]` tags. The READMEs here are ordinary
 > developer docs.
 
 ## Stack
@@ -38,8 +38,8 @@ pizza-ts/
 ├── test/
 │   └── orders/           # the orders domain test suite
 │       ├── menu.test.ts      # pricing units
-│       ├── orders.test.ts    # order service units (TC-1, TC-4..TC-9)
-│       └── app.test.ts       # HTTP-level tests (TC-1, TC-2, TC-6, TC-9)
+|       ├── orders.test.ts    # order service units
+│       └── app.test.ts       # HTTP-level tests
 └── http/                 # live integration requests (.http + httpyac)
 ```
 
@@ -103,11 +103,11 @@ Every requirement and test case in [`specs/order.spec.md`](specs/order.spec.md)
 has a place in the code. A requirement is higher-level than one check, so one
 `FR` can own several `TC` rows:
 
-- **FR-1** (TC-1) → `OrderStore.create` + `POST /orders`
-- **FR-2** (TC-2, TC-3, TC-4) → `unitPriceFor`, `SIZE_MULTIPLIER`, total computation
-- **FR-3** (TC-5) → `structuredClone` on store read/write (immutability)
-- **FR-4** (TC-6, TC-7, TC-8) → validation in `priceItem` / `OrderStore.create`
-- **FR-5** (TC-9) → `OrderStore.get` + `GET /orders/:id`
+- **FR-1** (`TC-5B8L`) → `OrderStore.create` + `POST /orders`
+- **FR-2** (`TC-WEZK`, `TC-TUBJ`, `TC-0QQE`) → `unitPriceFor`, `SIZE_MULTIPLIER`, total computation
+- **FR-3** (`TC-KK60`) → `structuredClone` on store read/write (immutability)
+- **FR-4** (`TC-ZFJF`, `TC-CV9T`, `TC-JJBH`) → validation in `priceItem` / `OrderStore.create`
+- **FR-5** (`TC-JKUK`) → `OrderStore.get` + `GET /orders/:id`
 
 ## Review & sign-off
 
@@ -122,7 +122,7 @@ approval is a property of the review.
 The record is one go or no-go review. Every stakeholder gets a **briefing
 written for their role**: Buck approves the business boundaries, Joe Jack gets
 the acceptance cases, and Enrique gets the constraints on the flow. Each
-briefing comes from the spec and cites the sections and the `FR-N`/`TC-N` rows
+briefing comes from the spec and cites the sections and the `FR-N` / Test ID rows
 that it summarizes. Nobody maintains it by hand. If the spec later changes
 enough to need a new review, you write the record again in place, and git
 history keeps the old round.

@@ -1,8 +1,8 @@
 /**
- * Release metadata for spec.md.
+ * Release metadata for spec-md.
  *
  * Shipped releases follow `@rosenjcb/spec-md` (version + changelog + git tags).
- * Root `spec.md` is private; Claude plugin manifests mirror the CLI version.
+ * Root `spec-md` is private; Claude plugin manifests mirror the CLI version.
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'

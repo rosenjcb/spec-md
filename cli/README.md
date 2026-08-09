@@ -4,8 +4,8 @@ Lint, coverage, and scaffolding tooling for [`*.spec.md`](https://github.com/ros
 documents. Zero runtime dependencies, works with Node ≥ 18.
 
 `spec-md` treats your specs as a checkable artifact. It validates the
-frontmatter and the `FR-N` / `TC-N` structure. It also cross-references each
-`TC-N` against the `[TC-N]` tags in your test suite, so that spec coverage
+frontmatter and the `FR-N` / Test ID structure. It also cross-references each
+Test ID against the `[TC-XXXX]` tags in your test suite, so that spec coverage
 becomes a CI gate.
 
 ## Install
@@ -25,11 +25,13 @@ npm install --global @rosenjcb/spec-md
 
 | Command | What it does |
 |---------|--------------|
-| `spec-md lint [paths…]` | Validate frontmatter (`type`, `title`, path fields incl. `review`, `timestamp`, `resource` URLs on specs and linked reviews), FR/TC ids (unique, contiguous, ascending `1..n`), duplicate ids, and TC→FR references. |
-| `spec-md coverage [paths…]` | Report which `TC-N` have at least one `[TC-N]` test, and flag tags that reference a `TC-N` the spec never declares. |
+| `spec-md lint [paths…]` | Validate frontmatter (`type`, `title`, path fields incl. `review`, `timestamp`, `resource` URLs on specs and linked reviews), FR ids (unique, contiguous, ascending `1..n`), Test IDs (`TC-[A-Z0-9]{4}`, unique within the spec), duplicate ids, and TC→FR references. |
+| `spec-md coverage [paths…]` | Report which Test IDs have at least one `[TC-XXXX]` test, and flag tags that reference an id the spec never declares. |
 | `spec-md check [paths…]` | `lint` + `coverage`, strict. The one to run in CI. |
 | `spec-md list [paths…]` | List every spec with FR/TC counts and a coverage bar. |
 | `spec-md new <domain>` | Scaffold `<domain>.spec.md` from the canonical template — the sections, the id rules, and the [Simplified Technical English](https://github.com/rosenjcb/spec.md#the-language) house style. (`create` / `init` aliases) |
+| `spec-md id` | Generate a stable `TC-XXXX` from a requirement + scenario seed (`--requirement`, `--scenario`, optional `--used`). |
+| `spec-md migrate-ids [paths…]` | Rewrite legacy sequential `TC-N` rows and matching `[TC-N]` tags to stable `TC-XXXX` ids. Idempotent. Use `--dry-run` to plan only. |
 
 Paths default to the current directory. The CLI searches them recursively for
 `*.spec.md` files, and skips build and dependency directories.
@@ -40,26 +42,48 @@ Paths default to the current directory. The CLI searches them recursively for
 |------|-----------|---------|
 | `--strict` | lint, coverage, check | Exit non-zero on warnings / coverage gaps. |
 | `--require-approved` | lint, check | Fail unless every review record linked from a spec's `review` key has `status: approved`. Specs with no linked review — and notice records with no `status` — are not gated; the [review lifecycle](https://github.com/rosenjcb/spec.md/blob/main/REVIEW.md) is opt-in per spec. |
-| `--json` | lint, coverage, list | Machine-readable output. |
-| `--tests <path>` | coverage | Search this path for `[TC-N]` tags instead of the spec's `tests` field. |
+| `--json` | lint, coverage, list, migrate-ids | Machine-readable output. |
+| `--tests <path>` | coverage | Search this path for `[TC-XXXX]` tags instead of the spec's `tests` field. |
 | `--out <path>` | new | Output file path. |
 | `--sources`, `--tests`, `--title` | new | Seed the generated frontmatter. |
 | `--force` | new | Overwrite an existing file. |
+| `--requirement`, `--scenario`, `--used` | id | Seed and collision set for a new Test ID. |
+| `--dry-run` | migrate-ids | Plan rewrites without writing files. |
 
 ## How coverage works
 
 The `tests` frontmatter field of a spec points at where its verification lives.
-`spec-md coverage` reads those spec-relative paths, scans them for the `[TC-N]`
-tags in the test names, and matches the tags against the `TC-N` rows of the
-spec. It ignores a row marked `[REMOVED]`. If a spec declares no `tests`, the
-search uses the paths you gave on the command line.
+`spec-md coverage` reads those spec-relative paths, scans them for the
+`[TC-XXXX]` tags in the test names, and matches the tags against the Test ID
+rows of the spec. It ignores a row marked `[REMOVED]`. If a spec declares no
+`tests`, the search uses the paths you gave on the command line. Ids are
+opaque strings — never sorted or ranged as numbers.
 
 ```
 $ spec-md coverage examples/pizza-ts
 ████████████████████ 100% examples/pizza-ts/specs/order.spec.md (9/9)
 
-✓ Overall 100% — 9/9 test cases have a [TC-N] test
+✓ Overall 100% — 9/9 test cases have a [TC-XXXX] test
 ```
+
+## Stable Test IDs
+
+A Test ID has the form `TC-[A-Z0-9]{4}` (for example `TC-K7MF`). It is:
+
+- **stable** — edit the scenario text without changing the id;
+- **opaque** — no ordering and no encoded semantics;
+- **scoped to the spec** — the same suffix may appear in two different specs;
+- **generated once** — hash of the initial requirement + scenario seed, with
+  deterministic collision resolution; after write, never recompute.
+
+Legacy sequential tables (`TC-1`, `TC-2`, …) fail `lint`. Run:
+
+```bash
+spec-md migrate-ids .
+```
+
+to rewrite the spec rows and the `[TC-N]` tags under each spec's `tests` paths
+in one atomic pass.
 
 ## Exit codes
 

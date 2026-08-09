@@ -7,7 +7,7 @@ description: The specification for the Orders domain in the pizza-ts example pla
 resource: https://notion.com/read_only_publish_page_location
 review: ./order.review.md
 tags: [pizza, orders, checkout]
-timestamp: 2026-08-01T00:00:00Z
+timestamp: 2026-08-09T05:00:00Z
 ---
 
 ### Intro
@@ -63,17 +63,17 @@ adjustment flow can change it. Both flows are Out of Scope for this example.
 ### QA Test Cases
 
 A requirement is a higher-level statement, and **one test case or more**
-validates it. Here `FR-2` (the price) owns `TC-2` to `TC-4`, and `FR-4`
-(validation) owns `TC-6` to `TC-8`.
+validates it. Here `FR-2` (the price) owns `TC-WEZK`, `TC-TUBJ`, and
+`TC-0QQE`, and `FR-4` (validation) owns `TC-ZFJF`, `TC-CV9T`, and `TC-JJBH`.
 
 | Test ID | Requirement | Scenario | Expected Outcome |
 |---------|------------|----------|------------------|
-| TC-1 | FR-1 | The customer submits a valid request | The system creates the order with status CREATED |
-| TC-2 | FR-2 | The customer orders a small pizza | The unit price equals the base price |
-| TC-3 | FR-2 | The customer orders a large pizza | The unit price is the base price × the size multiplier, rounded to the cent |
-| TC-4 | FR-2 | The order has two line items | The order total is the sum of the line totals (unit price × quantity) |
-| TC-5 | FR-3 | The caller changes the returned order object | The stored order does not change |
-| TC-6 | FR-4 | The request has no `customerId` | The API returns status 400 |
-| TC-7 | FR-4 | The `items` list is empty | The API returns status 400 |
-| TC-8 | FR-4 | The request names an unknown pizza, or a quantity of zero or less | The API returns status 400 |
-| TC-9 | FR-5 | The client requests a known id, then an unknown id | The API returns 200 with the order, then 404 |
+| TC-5B8L | FR-1 | The customer submits a valid request | The system creates the order with status CREATED |
+| TC-WEZK | FR-2 | The customer orders a small pizza | The unit price equals the base price |
+| TC-TUBJ | FR-2 | The customer orders a large pizza | The unit price is the base price × the size multiplier, rounded to the cent |
+| TC-0QQE | FR-2 | The order has two line items | The order total is the sum of the line totals (unit price × quantity) |
+| TC-KK60 | FR-3 | The caller changes the returned order object | The stored order does not change |
+| TC-ZFJF | FR-4 | The request has no `customerId` | The API returns status 400 |
+| TC-CV9T | FR-4 | The `items` list is empty | The API returns status 400 |
+| TC-JJBH | FR-4 | The request names an unknown pizza, or a quantity of zero or less | The API returns status 400 |
+| TC-JKUK | FR-5 | The client requests a known id, then an unknown id | The API returns 200 with the order, then 404 |

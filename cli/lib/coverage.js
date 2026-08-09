@@ -8,8 +8,9 @@ const TEXT_EXT = /\.(m?[jt]sx?|py|rb|go|rs|java|kt|cs|php|swift|scala|clj|ex|exs
 /**
  * Compute TC coverage for one spec.
  *
- * A TC-N is "covered" when a `[TC-N]` tag appears anywhere in the spec's
+ * A TC id is "covered" when a `[TC-XXXX]` tag appears anywhere in the spec's
  * `tests` paths (or, if none are declared, anywhere under `fallbackRoots`).
+ * Ids are opaque strings — never parsed as numbers.
  */
 export function coverageForSpec(filePath, { fallbackRoots = [], searchRoots = null } = {}) {
   const spec = parseSpec(filePath);

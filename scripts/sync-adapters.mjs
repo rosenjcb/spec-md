@@ -37,7 +37,7 @@ export function splitSkillMarkdown(text) {
 function intro(agent) {
   return (
     `${adapterBanner("SKILL.md")}\n\n> This guide teaches ${agent} to author and maintain \`*.spec.md\` files — ` +
-    `the [spec.md](https://github.com/rosenjcb/spec.md) format. It is generated from the canonical ` +
+    `the [spec-md](https://github.com/rosenjcb/spec.md) format. It is generated from the canonical ` +
     `[SKILL.md](${GH_BLOB}/SKILL.md); see it and [TESTING.md](${GH_BLOB}/TESTING.md) for the source of truth.\n`
   );
 }
@@ -64,7 +64,7 @@ export function buildAdapterOutputs(skillRaw) {
     {
       path: "AGENTS.md",
       content:
-        `# AGENTS.md — spec.md\n\n${adapterBanner("SKILL.md")}\n\n` +
+        `# AGENTS.md — spec-md\n\n${adapterBanner("SKILL.md")}\n\n` +
         `When working with \`*.spec.md\` files in this repository, follow the rules below.\n\n` +
         `---\n\n${body}\n`,
     },
@@ -82,13 +82,13 @@ export function buildAdapterOutputs(skillRaw) {
     },
     {
       path: ".clinerules/spec-md.md",
-      content: `# spec.md rules\n\n${intro("Cline")}\n---\n\n${body}\n`,
+      content: `# spec-md rules\n\n${intro("Cline")}\n---\n\n${body}\n`,
     },
     {
       path: ".github/copilot-instructions.md",
       content:
-        `# Copilot instructions — spec.md\n\n${adapterBanner("SKILL.md")}\n\n` +
-        `This repository uses the [spec.md](https://github.com/rosenjcb/spec.md) format. ` +
+        `# Copilot instructions — spec-md\n\n${adapterBanner("SKILL.md")}\n\n` +
+        `This repository uses the [spec-md](https://github.com/rosenjcb/spec.md) format. ` +
         `When creating or editing \`*.spec.md\` files, follow these rules.\n\n---\n\n${body}\n`,
     },
   ];

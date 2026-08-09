@@ -1,5 +1,5 @@
-name: "spec.md check"
-description: "Lint *.spec.md files and verify that every TC-N test case has a matching [TC-N] test."
+name: "spec-md check"
+description: "Lint *.spec.md files and verify that every Test ID has a matching [TC-XXXX] test."
 author: "rosenjcb"
 branding:
   icon: "check-square"

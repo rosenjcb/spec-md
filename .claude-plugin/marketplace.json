@@ -5,7 +5,7 @@
     "url": "https://github.com/rosenjcb"
   },
   "metadata": {
-    "description": "spec.md — an agent-native specification framework for the software development lifecycle.",
+    "description": "spec-md — an agent-native specification framework for the software development lifecycle.",
     "version": "0.3.6"
   },
   "plugins": [

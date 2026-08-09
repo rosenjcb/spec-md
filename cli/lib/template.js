@@ -1,3 +1,5 @@
+import { generateTcId, tcIdentitySeed } from "./ids.js";
+
 /** Render a frontmatter path list as a YAML inline array. */
 function yamlList(value, fallback) {
   const items = String(value || fallback)
@@ -11,6 +13,8 @@ function yamlList(value, fallback) {
 export function specTemplate({ domain, title, sources, tests }) {
   const now = new Date().toISOString().replace(/\.\d+Z$/, "Z");
   const cap = domain.charAt(0).toUpperCase() + domain.slice(1);
+  // Stable opaque id for the first placeholder row; not a sequence number.
+  const firstTc = generateTcId(tcIdentitySeed("FR-1", `${domain} placeholder`));
   return `---
 type: Spec
 title: "Spec: ${title || cap}"
@@ -59,12 +63,12 @@ active voice, in 20 words or fewer. FR-N ids must be contiguous and ascending
 
 ### QA Test Cases
 
-<!-- Concrete checks. Several TCs usually prove one FR. TC-N ids must be
-contiguous and ascending (TC-1..TC-n). Tests link back through [TC-N].
-If you reorder rows, renumber them 1..n and update the [TC-N] tags. -->
+<!-- Concrete checks. Several TCs usually prove one FR. Each Test ID is a
+stable opaque join key (TC-XXXX). Generate new ids with \`spec-md id\`;
+never renumber or reuse. Tests link back through [TC-XXXX]. -->
 
 | Test ID | Requirement | Scenario | Expected Outcome |
 |---------|-------------|----------|------------------|
-| TC-1 | FR-1 | <!-- input --> | <!-- expected --> |
+| ${firstTc} | FR-1 | <!-- input --> | <!-- expected --> |
 `;
 }

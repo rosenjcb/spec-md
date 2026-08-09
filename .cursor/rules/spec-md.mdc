@@ -1,21 +1,21 @@
 ---
-description: Author or update a *.spec.md file — an Open Knowledge Format spec that captures a system's intent, behavior, and verification so both humans and agents stay aligned. Produces OKF metadata, Intro, Definitions, Scope, Functional Requirements (FR-N), and QA Test Cases (TC-N). Also creates and manages the optional *.review.md sign-off record (stakeholder roles, per-role briefings, approval state).
+description: Author or update a *.spec.md file — an Open Knowledge Format spec that captures a system's intent, behavior, and verification so both humans and agents stay aligned. Produces OKF metadata, Intro, Definitions, Scope, Functional Requirements (FR-N), and QA Test Cases with stable TC-XXXX ids. Also creates and manages the optional *.review.md sign-off record (stakeholder roles, per-role briefings, approval state).
 globs: **/*.spec.md
 alwaysApply: false
 ---
 
 <!-- GENERATED FROM SKILL.md — do not edit. Run: pnpm run sync (or node scripts/sync-adapters.mjs) -->
 
-> This guide teaches Cursor to author and maintain `*.spec.md` files — the [spec.md](https://github.com/rosenjcb/spec.md) format. It is generated from the canonical [SKILL.md](https://github.com/rosenjcb/spec.md/blob/main/SKILL.md); see it and [TESTING.md](https://github.com/rosenjcb/spec.md/blob/main/TESTING.md) for the source of truth.
+> This guide teaches Cursor to author and maintain `*.spec.md` files — the [spec-md](https://github.com/rosenjcb/spec.md) format. It is generated from the canonical [SKILL.md](https://github.com/rosenjcb/spec.md/blob/main/SKILL.md); see it and [TESTING.md](https://github.com/rosenjcb/spec.md/blob/main/TESTING.md) for the source of truth.
 
 ---
 
-# spec.md
+# spec-md
 
 Write a `*.spec.md` file: the authoritative, living description of a system —
 what it does, why it exists, and how it must behave. A spec is shared context
 for Product, Engineering, QA, and agents. It uses the
-[spec.md](https://github.com/rosenjcb/spec.md) format, an Open Knowledge Format
+[spec-md](https://github.com/rosenjcb/spec.md) format, an Open Knowledge Format
 extension, so it stays machine-readable and stays synchronized with the system
 it describes.
 
@@ -48,11 +48,19 @@ questions — not a quiz — only when it is not.
 Decide about the review **here, at the start**. Write the record itself in
 Step 5, when there is a spec to derive it from.
 
-The critical update rule: **`FR-N` and `TC-N` ids must stay contiguous and
-ascending** — `FR-1..FR-n` and `TC-1..TC-n` in table order, with no gaps and no
-inserts in the middle of a table. `spec-md lint` enforces this. The default
-edit adds `n + 1` at the end. If you reorder rows, renumber them `1..n` in the
-new order. Then update every related `[TC-N]` test tag in the same change.
+Two id rules stay in force for the life of a spec:
+
+1. **`FR-N` ids stay contiguous and ascending** — `FR-1..FR-n` in table order,
+   with no gaps. The default edit appends `n + 1`. If you reorder FR rows,
+   renumber them `1..n` in the new order.
+2. **Each test-case id is a stable opaque join key** in the form
+   `TC-[A-Z0-9]{4}` (for example `TC-K7MF`). It identifies the test case, not
+   its row position. Generate a new id with `spec-md id` (or the shared id
+   helper). Never choose an id from row position. Never renumber, reuse, or
+   recompute an existing TC id when its text changes. Gaps and reorder are
+   fine — they are not missing tests.
+
+`spec-md lint` enforces both rules.
 
 ## Step 1: Gather context
 
@@ -65,7 +73,7 @@ Derive the spec from the real system. Do not invent structure.
    which prove it. These become metadata.
 4. **When you update, read the current spec first.** Compare its claims against
    the code and the tests as they are now. Note what drifted: new behavior with
-   no `FR-N`, requirements whose behavior changed, `TC-N` rows that no longer
+   no `FR-N`, requirements whose behavior changed, TC rows that no longer
    match, and tests with no row (or rows with no test).
 5. **Ask only when blocked.** One or two questions at a time. Show what you
    found in the code, then confirm it.
@@ -98,7 +106,7 @@ readers build different things. Six rules do most of the work:
 | Handle bad input gracefully. | Reject a request that has no `customerId`. Return status 400. |
 
 Apply this to every part of the document: Intro, Definitions, Scope, `FR-N`,
-`TC-N`, and the review briefings in Step 5. The full dictionary and all 65
+test cases, and the review briefings in Step 5. The full dictionary and all 65
 rules are in the standard itself ([asd-ste100.org](https://www.asd-ste100.org/));
 the six rules above are what a spec needs each day.
 
@@ -132,7 +140,7 @@ timestamp: 2026-05-28T14:30:00Z
 
 | Key | Required | Purpose |
 |-----|----------|---------|
-| `type` | **Yes** | Always `Spec` for a spec.md file. |
+| `type` | **Yes** | Always `Spec` for a `*.spec.md` document. |
 | `title` | **Yes** | Human-readable name. |
 | `sources` | No | YAML list of **spec-relative** paths to code/schemas/docs that implement the spec. |
 | `tests` | No | YAML list of spec-relative paths to verification (unit suites, `.http`, e2e). |
@@ -189,26 +197,35 @@ one behavior per row, in the active voice, in 20 words or fewer.
 
 ### QA Test Cases
 
-A table of `TC-N` rows. Each row cites the `FR-N` it proves. Usually
-**several** test cases prove one FR (for example, pricing needs a case for
-size, one for quantity, and one for rounding). Each row is a deterministic,
+A table of test-case rows. Each row has a **stable opaque Test ID**
+(`TC-XXXX`) and cites the `FR-N` it proves. A Test ID is a stable join key
+between the QA row and the tests that prove it. It is not a sequence number.
+Usually **several** test cases prove one FR (for example, pricing needs a case
+for size, one for quantity, and one for rounding). Each row is a deterministic,
 concrete check with an exact input and an exact expected outcome.
+
+Generate each new id with the tooling — do not invent `TC-1`, `TC-2`, and so on:
+
+```bash
+spec-md id --requirement FR-4 --scenario "The request has no customerId"
+# → TC-ZFJF (example; the real value is content-derived)
+```
 
 ```md
 ### QA Test Cases
 
 | Test ID | Requirement | Scenario | Expected Outcome |
 |---------|-------------|----------|------------------|
-| TC-1 | FR-1 | The customer submits a valid request | The system creates the order with status CREATED |
-| TC-2 | FR-2 | The customer orders a large pizza | The unit price is the base price × 1.6, rounded to the cent |
-| TC-3 | FR-4 | The request has no `customerId` | The API returns status 400 |
-| TC-4 | FR-4 | The `items` list is empty | The API returns status 400 |
+| TC-K7MF | FR-1 | The customer submits a valid request | The system creates the order with status CREATED |
+| TC-2QXR | FR-2 | The customer orders a large pizza | The unit price is the base price × 1.6, rounded to the cent |
+| TC-8PDA | FR-4 | The request has no `customerId` | The API returns status 400 |
+| TC-V4WN | FR-4 | The `items` list is empty | The API returns status 400 |
 ```
 
 Cover the happy path first, then the edge cases, then the error conditions.
-Write the related cases under the FR they belong to, **in the order you want
-them to keep** — the ids become `TC-1..TC-n` in that table order. Be concrete:
-`[owner, downlineA, unrelated]` is better than "a mixed array".
+Group related cases under the FR they belong to. Row order is for readers only;
+it does not change the ids. Be concrete: `[owner, downlineA, unrelated]` is
+better than "a mixed array".
 
 ## Step 2u: Update the spec
 
@@ -216,51 +233,48 @@ Edit the existing file in place. Keep the prose and the ids that are still
 correct, and change only what drifted. Apply the same section rules as Step 2,
 and these rules also:
 
-- **Keep ids contiguous and ascending.** Every FR/TC table must be exactly
-  `FR-1..FR-n` / `TC-1..TC-n` in row order, with no gaps and no rows out of
-  order. If not, `spec-md lint` fails.
-- **Default: append.** A new requirement or case takes `n + 1` and goes at the
-  **end** of the table. Count the rows in the table, and confirm that the count
-  agrees with the highest `N`, before you allocate an id. Never invent an id in
-  the middle of the range (`TC-84` when the table ends at `TC-4`). Never reuse
-  an id that is in use, and never copy an id from a different spec.
-- **Clean up after each insert, removal, or edit.** If rows are out of order,
-  have gaps, or are grouped incorrectly:
-  1. Reorder them for readability — FR by domain or lifecycle, TC by the
-     `FR-N` they prove (happy path, then edge, then error, in each group).
-  2. **Renumber** the table to `1..n` in that new order.
-  3. Update every `[TC-N]` test tag, and each review briefing that cites an id,
-     in the same change.
-  Do not leave `TC-1, TC-2, TC-84, TC-3`. Do not renumber without an update to
-  the tags.
-- **Edit a row in place** when the behavior changed but the requirement is the
-  same. Update the text of the row, not its number.
-- **Mark removed behavior** instead of a silent deletion: add `[REMOVED]` to
-  the row and delete its `[TC-N]` tests, so that reviewers see the change. A
-  `[REMOVED]` row keeps its index, and the sequence stays contiguous. When
-  nothing refers to it, delete the row and compact the table: renumber the
-  remaining rows to `1..n` and update the tags.
+- **FR ids stay contiguous and ascending.** The FR table must be exactly
+  `FR-1..FR-n` in row order, with no gaps. If not, `spec-md lint` fails.
+- **TC ids stay stable.** A Test ID is permanent for the life of that case.
+  Reorder rows freely. Delete a row without renumbering anything else. Never
+  change an id because its scenario text changed. Never treat a "gap" between
+  opaque ids as a missing test.
+- **Default: append.**
+  - A new **FR** takes `n + 1` and goes at the end of the FR table.
+  - A new **TC** gets a fresh id from `spec-md id` (or the shared helper), with
+    the already-used ids of that spec passed so collisions resolve, and goes
+    at the end of the TC table (or wherever it reads best).
+- **Clean up after each FR reorder only.** If FR rows have gaps or are out of
+  order: reorder them, renumber `FR-1..FR-n`, and leave every TC id alone
+  (update only the Requirement column if a FR number moved).
+- **Edit a TC row in place** when the behavior changed but the case is the
+  same. Update the text of the row, **not** its Test ID. Do not run id
+  generation again for an existing row.
+- **Mark removed behavior** instead of a silent deletion when reviewers need
+  the delta: add `[REMOVED]` to the row and delete its `[TC-XXXX]` tests. When
+  nothing refers to it, delete the row. Do **not** renumber other TC ids.
 - **Mark a new or changed row** with `[NEW]` or `[UPDATED]` while the change is
   in review. Remove the marker after the merge.
 - **Reconcile the metadata.** Update `sources` and `tests` if the paths moved,
   and always set `timestamp` to the current time.
-- **Lint at the end.** Run `spec-md lint` (or `check`) on the file. Correct each
-  sequence error, duplicate id, and dangling reference before you call the
-  update done.
+- **Lint at the end.** Run `spec-md lint` (or `check`) on the file. Correct
+  each FR sequence error, bad TC format, duplicate id, and dangling reference
+  before you call the update done. For a legacy numeric table, run
+  `spec-md migrate-ids` once rather than editing ids by hand.
 
 ## Step 3: Link the tests
 
-A test traces back to the spec through a bracketed `[TC-N]` prefix in the test
-name. The tag is the join key between the spec and the suite. See
+A test traces back to the spec through a bracketed `[TC-XXXX]` prefix in the
+test name. The tag is the join key between the spec and the suite. See
 [TESTING.md](https://github.com/rosenjcb/spec.md/blob/main/TESTING.md) for the
 full convention.
 
 ```ts
-it("[TC-3] Given a request with no customerId, when the store creates the order, then it throws a ValidationError", () => { ... });
+it("[TC-8PDA] Given a request with no customerId, when the store creates the order, then it throws a ValidationError", () => { ... });
 ```
 
-Coverage is greppable: each `TC-N` in the spec must have one `[TC-N]` test or
-more. A test with no matching row is a signal to add the `TC-N` row. If the
+Coverage is greppable: each Test ID in the spec must have one `[TC-XXXX]` test
+or more. A test with no matching row is a signal to add the TC row. If the
 test is not an acceptance criterion, tag it `[smoke]` instead.
 
 ## Step 4: Flag gaps
@@ -268,10 +282,10 @@ test is not an acceptance criterion, tag it `[smoke]` instead.
 - Mark ambiguous behavior with `??` and tell the user about it.
 - Record each known difference between the code and the spec in a short
   "Known issues" section.
-- Flag each `FR-N` with no `TC-N`, and each `TC-N` with no `[TC-N]` test.
-- Flag duplicate ids, gaps in the numbers, and FR/TC rows that are out of
-  order. To correct them: reorder the rows, renumber them `1..n`, and update
-  the `[TC-N]` tags before you finish.
+- Flag each `FR-N` with no TC row, and each TC with no `[TC-XXXX]` test.
+- Flag duplicate ids, malformed TC format, and FR rows that are out of order.
+  To correct FR order: reorder and renumber `FR-1..FR-n`. Do not renumber TC
+  ids.
 
 ## Step 5: The review record (only if triage says so)
 
@@ -294,7 +308,7 @@ link the two documents:
    table (with checkboxes for the approvers only), and a **briefing for each
    stakeholder**. Write each briefing for the role and the concerns of that
    person, derive it from the spec, and cite the sections and the
-   `FR-N`/`TC-N` rows that it summarizes. Never write a restatement by hand,
+   `FR-N` / Test ID rows that it summarizes. Never write a restatement by hand,
    and never give a person a generic link to a section.
 
 **Never set `status: approved` yourself.** The record stays `open` until the
@@ -306,7 +320,7 @@ and record why.
 When you update a spec that links an approved review, ask whether the change
 needs a new review. If it does, write the record again in place: a new
 `revision`, `status: open`, and new briefings that cover the delta by
-`FR-N`/`TC-N` id. Git history keeps the old round, so do not append rounds to
+`FR-N` / Test ID. Git history keeps the old round, so do not append rounds to
 the file.
 
 Hand-off is manual by design. The record is one document, so give the
@@ -320,7 +334,7 @@ through Slack or email. Do not build or configure notification machinery.
   [The language](#the-language-simplified-technical-english).
 - **Short first, deep later.** More prose makes a reader skim, and a spec that
   readers skim aligns nobody. Keep the `*.spec.md` short: intent, scope,
-  `FR-N`, and `TC-N`. Link out for depth — [TESTING.md](./TESTING.md),
+  `FR-N`, and TC rows. Link out for depth — [TESTING.md](./TESTING.md),
   [REVIEW.md](./REVIEW.md), examples — instead of a pasted checklist or a
   repeat of a companion document. Each layer earns its place, and nothing
   repeats the layer above it.
@@ -333,6 +347,6 @@ through Slack or email. Do not build or configure notification machinery.
 - **Living, not fixed.** Give enough detail to remove ambiguity, but not so
   much rigidity that the spec goes stale. Update `timestamp` and the related
   rows as the system changes, instead of a rewrite of the whole document.
-- **Table order.** After each insert, removal, or edit, the tables must stay
-  `FR-1..FR-n` / `TC-1..TC-n` in ascending order with no gaps. Reorder for
-  readability, then renumber and update the `[TC-N]` tags. Lint is the gate.
+- **Stable test identity.** A Test ID (`TC-XXXX`) is a permanent join key.
+  Preserve it when you edit, move, or reorder a case. Generate a new id only
+  for a new case. FR rows stay `FR-1..FR-n`. Lint is the gate.

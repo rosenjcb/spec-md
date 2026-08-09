@@ -1,11 +1,11 @@
-# Review & sign-off in spec.md
+# Review & sign-off in spec-md
 
 This document describes how the people around a `*.spec.md` review it,
 acknowledge it, and sign it off. It does this without a copy of the spec in a
 second artifact, which can drift.
 
 A spec already carries *what* the system must do (`FR-N`) and *what proves it*
-(`TC-N`). It does not carry *who* has a say, or *what their say means*. Teams
+(stable Test IDs). It does not carry *who* has a say, or *what their say means*. Teams
 usually solve this with a "sign-off sheet" that restates the requirements for
 the stakeholders. That is the error: the sheet and the spec diverge, and the
 signature ends up on text that nobody builds from. If the spec says one thing
@@ -29,7 +29,7 @@ changes, and you never maintain it by hand.
 2. **Derive it; do not write it by hand.** The spec is the only place where
    you *write* content. Each stakeholder reads a **briefing generated from the
    spec** — written for the role and the concerns of that person, from the
-   spec at a pinned version, and it cites the sections and the `FR-N`/`TC-N`
+   spec at a pinned version, and it cites the sections and the `FR-N` / Test ID
    rows that it summarizes. Nobody must read the whole spec, and nobody gets a
    generic link to a section. A restatement maintained by hand drifts. A
    derived briefing is disposable: when the spec changes, generate the briefing
@@ -69,11 +69,11 @@ flowchart TD
 
     bspec -- no --> fix["Fix it. Spec the domain only<br/>if it keeps causing failures"]
     bspec -- yes --> drift{Spec already describes<br/>the correct behavior?}
-    drift -- "yes — code drifted" --> conform["Fix the code, keep the TC-N test honest.<br/>No spec change, no review"]
+    drift -- "yes — code drifted" --> conform["Fix the code, keep the Test ID test honest.<br/>No spec change, no review"]
     drift -- "no — spec was wrong" --> amend["Update the rows in place,<br/>mark them UPDATED"]
 
     fspec -- no --> author["Author the spec<br/>(create path, kickoff minimum)"]
-    fspec -- yes --> extend["Append FR-N / TC-N rows,<br/>mark them NEW"]
+    fspec -- yes --> extend["Append FR-N / TC rows,<br/>mark them NEW"]
 
     amend --> gate{Ambiguous, risky,<br/>or cross-team?}
     author --> gate
@@ -212,7 +212,7 @@ The body applies rule 2: derive it, never write it by hand. It contains:
   checkboxes for the approvers only.
 - A **briefing for each stakeholder** — written for the role and the concerns
   of that person, from the spec at the pinned `revision`. It cites the sections
-  and the `FR-N`/`TC-N` rows that it summarizes, so every claim is one click
+  and the `FR-N` / Test ID rows that it summarizes, so every claim is one click
   from its source. The briefing is the whole request. The rest of the spec is
   context, and the stakeholder does not have to read it. Let an agent draft
   each briefing, because the spec, the roles, and the delta are all
@@ -229,7 +229,7 @@ A record is **one review** — one go or no-go decision before the work. Most
 specs have only one. A second round is the exception, not the shape of the
 file. When a spec later changes enough to need a new review, **write the record
 again in place**: a new `revision`, `status` back to `open`, and new briefings
-that cover the delta by `FR-N`/`TC-N` id. You derive that delta from the
+that cover the delta by `FR-N` / Test ID id. You derive that delta from the
 history of the spec, and you copy nothing by hand. The old round is not lost.
 It is one commit away. Git history is the archive, so the file never becomes a
 changelog.
@@ -302,8 +302,8 @@ the only way to adjust an order. Payments and inventory stay out of this system
 
 **Joe Jack (QA)** — The acceptance criteria are the rows in
 [QA Test Cases](./order.spec.md#qa-test-cases). The API returns a validation
-error for an invalid request ([TC-5]). It returns 404 for an unknown order id
-([TC-9]). Tell us before the deadline about each case your harness cannot
+error for an invalid request ([TC-91CX]). It returns 404 for an unknown order id
+([TC-JKUK]). Tell us before the deadline about each case your harness cannot
 assert.
 
 **Enrique (Design)** — A customer cannot edit an order after purchase. After a
@@ -332,7 +332,7 @@ asking.
 |-----------|-----------------------|-----------------|
 | **Kickoff** | Frontmatter (`type`, `title`), Intro, Scope — `??` markers and gaps welcome | Are we solving the right problem, with the right boundaries? |
 | **Pre-build** | + Definitions and Functional Requirements (`FR-N`); QA Test Cases for the core paths | Is this the behavior we want built? |
-| **Pre-release** | + full `TC-N` coverage, `sources`/`tests` linked | Did we ship what the spec says? |
+| **Pre-release** | + full Test ID coverage, `sources`/`tests` linked | Did we ship what the spec says? |
 
 A signee at kickoff approves the boundaries, not the behavior, and the
 milestone in the record tells them which one. Below the kickoff minimum there
@@ -371,7 +371,7 @@ twice: you must pass the flag, and a spec that links no review is not gated. A
 `notice` is not gated either, because it carries no `status`. By design, no
 rule cancels a signature when a spec changes after its review. The driver
 decides when a new review is necessary. The `[NEW]` and `[UPDATED]` markers,
-with contiguous `FR-N`/`TC-N` ids, make "what changed since you last looked"
+with contiguous `FR-N` ids and stable Test IDs, make "what changed since you last looked"
 cheap to communicate, and you restate nothing. We want a baseline of how teams
 use reviews — how many people read, acknowledge, and comment — before we add
 more enforcement.
