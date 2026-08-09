@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "spec-md — an agent-native specification framework for the software development lifecycle.",
-    "version": "0.3.6"
+    "version": "0.4.0"
   },
   "plugins": [
     {
       "name": "spec-md",
       "source": "./",
       "description": "Author and maintain *.spec.md documents: OKF specs that keep intent, behavior, and verification aligned across humans and agents. Use /spec-md to author; /spec-md:check and /spec-md:coverage for validation. Single root SKILL.md (no nested skills/spec-md).",
-      "version": "0.3.6",
+      "version": "0.4.0",
       "author": {
         "name": "rosenjcb",
         "url": "https://github.com/rosenjcb"

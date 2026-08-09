@@ -1,6 +1,6 @@
 {
   "name": "spec-md",
-  "version": "0.3.6",
+  "version": "0.4.0",
   "private": true,
   "description": "spec-md — an agent-native specification framework. This root package wires up the packaging tooling; the publishable CLI lives in ./cli.",
   "type": "module",

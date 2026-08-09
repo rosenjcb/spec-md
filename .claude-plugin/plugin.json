@@ -1,7 +1,7 @@
 {
   "name": "spec-md",
   "description": "Author or update *.spec.md files — Open Knowledge Format specs that capture a system's intent, behavior, and verification so humans and agents stay aligned. Use /spec-md to author; /spec-md:check and /spec-md:coverage for validation. Single root SKILL.md (no nested skills/spec-md).",
-  "version": "0.3.6",
+  "version": "0.4.0",
   "author": {
     "name": "rosenjcb",
     "url": "https://github.com/rosenjcb"
