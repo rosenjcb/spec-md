@@ -1,12 +1,12 @@
 <div align="center">
 
-<h1>Adopting spec.md</h1>
+<h1>Adopting spec-md</h1>
 
-<p><strong>Every way to get spec.md into your project</strong> — pick the row that matches your setup.</p>
+<p><strong>Every way to get spec-md into your project</strong> — pick the row that matches your setup.</p>
 
 </div>
 
-spec.md ships in two layers, and you can use one or both:
+spec-md ships in two layers, and you can use one or both:
 
 1. **The skill** — the authoring guidance that teaches an agent to write and
    maintain `*.spec.md` files, in the sections, the id rules, and the
@@ -47,7 +47,7 @@ Then in any session:
 ```
 /spec-md orders             # create or update — skill triages either way
 /spec-md:check              # lint every spec in the repo
-/spec-md:coverage           # which TC-N are missing a [TC-N] test?
+/spec-md:coverage           # which Test IDs are missing a [TC-XXXX] test?
 ```
 
 Use `/spec-md` to author a spec. Claude can also list a namespaced form of the
@@ -119,7 +119,7 @@ plugin (that double-named the slash form).
 
 ```bash
 npx @rosenjcb/spec-md lint            # validate frontmatter + FR/TC structure
-npx @rosenjcb/spec-md coverage        # TC-N ↔ [TC-N] test coverage
+npx @rosenjcb/spec-md coverage        # Test ID ↔ [TC-XXXX] test coverage
 npx @rosenjcb/spec-md check --strict  # both, as a CI gate
 npx @rosenjcb/spec-md new billing     # scaffold billing.spec.md
 npx @rosenjcb/spec-md list            # every spec, with counts + coverage
@@ -135,7 +135,7 @@ Full command reference: [`cli/README.md`](./cli/README.md).
 
 ## 5. Continuous integration
 
-Use the bundled GitHub Action to fail a build when a spec breaks or a `TC-N`
+Use the bundled GitHub Action to fail a build when a spec breaks or a Test ID
 loses its test:
 
 ```yaml

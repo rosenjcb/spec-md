@@ -2,17 +2,18 @@ import { readFileSync } from "node:fs";
 
 /**
  * Minimal, dependency-free parser for a *.spec.md document.
- * It is intentionally lenient: it extracts the structure spec.md cares about
- * (frontmatter, FR-N rows, TC-N rows) without pulling in a full YAML/Markdown
+ * It is intentionally lenient: it extracts the structure spec-md cares about
+ * (frontmatter, FR-N rows, TC ids) without pulling in a full YAML/Markdown
  * stack. It is not a validator — lint.js interprets the result.
  */
 
+/** Stable test-case id: `TC-` + four uppercase base36 characters. */
+export const TC_ID_RE = /^TC-[A-Z0-9]{4}$/;
+
 const ID_RE = {
   fr: /^FR-\d+$/,
-  tc: /^TC-\d+$/,
+  tc: TC_ID_RE,
 };
-
-const MARKER_RE = /\[(REMOVED|NEW|UPDATED)\]/g;
 
 /** Split a `key: value` frontmatter line, honoring inline `[a, b]` arrays. */
 function parseScalar(raw) {
@@ -91,7 +92,7 @@ function parseTableRows(lines, startIdx) {
 const isSeparatorRow = (cells) => cells.every((c) => /^:?-{1,}:?$/.test(c) || c === "");
 
 /**
- * Extract FR-N and TC-N tables from the document body.
+ * Extract FR-N and TC tables from the document body.
  * We identify a table by its header cells, then read the id-bearing column.
  */
 export function parseTables(text, frontmatterLines = 0) {
@@ -119,14 +120,12 @@ export function parseTables(text, frontmatterLines = 0) {
     if (header[0] === "id" && header.some((h) => h.includes("requirement"))) {
       sawFrTable = true;
       bodyRows.forEach((cells, idx) => {
-        const id = (cells[0] || "").replace(MARKER_RE, "").trim();
+        const id = (cells[0] || "").trim();
         if (!id) return;
         frs.push({
           id,
           valid: ID_RE.fr.test(id),
           text: cells.slice(1).join(" | "),
-          markers: [...(cells.join(" ").matchAll(MARKER_RE))].map((m) => m[1]),
-          removed: /\[REMOVED\]/.test(cells.join(" ")),
           line: lineOf(idx + 1),
         });
       });
@@ -140,7 +139,7 @@ export function parseTables(text, frontmatterLines = 0) {
       sawTcTable = true;
       const reqCol = header.findIndex((h) => h.includes("requirement"));
       bodyRows.forEach((cells, idx) => {
-        const id = (cells[0] || "").replace(MARKER_RE, "").trim();
+        const id = (cells[0] || "").trim();
         if (!id) return;
         const reqCell = cells[reqCol] || "";
         const requirements = [...reqCell.matchAll(/FR-\d+/g)].map((m) => m[0]);
@@ -148,10 +147,9 @@ export function parseTables(text, frontmatterLines = 0) {
           id,
           valid: ID_RE.tc.test(id),
           requirements,
-          reqRaw: reqCell.replace(MARKER_RE, "").trim(),
+          reqRaw: reqCell.trim(),
           scenario: cells[reqCol + 1] || "",
           expected: cells[reqCol + 2] || "",
-          removed: /\[REMOVED\]/.test(cells.join(" ")),
           line: lineOf(idx + 1),
         });
       });
@@ -179,9 +177,11 @@ export function parseSpec(filePath) {
   };
 }
 
-/** Collect every [TC-N] tag mentioned in an arbitrary text blob. */
+/** Collect every [TC-XXXX] tag mentioned in an arbitrary text blob. */
 export function extractTcTags(text) {
-  return new Set([...text.matchAll(/\[(TC-\d+)\]/g)].map((m) => m[1]));
+  return new Set(
+    [...text.matchAll(/\[(TC-[A-Z0-9]{4})\]/g)].map((m) => m[1]),
+  );
 }
 
 export const ID_PATTERNS = ID_RE;

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# spec.md installer — drop the spec-md skill and/or agent rule files into a project.
+# spec-md installer — drop the spec-md skill and/or agent rule files into a project.
 #
 #   curl -fsSL https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.sh | bash
 #   curl -fsSL https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.sh | bash -s -- --cursor
@@ -85,7 +85,7 @@ if [ "$ANY" -eq 0 ]; then
   DO_AGENTS=1
 fi
 
-printf "${C_BOLD}spec.md installer${C_RESET}  (%s@%s)\n\n" "$REPO" "$BRANCH"
+printf "${C_BOLD}spec-md installer${C_RESET}  (%s@%s)\n\n" "$REPO" "$BRANCH"
 [ -n "$SRC_DIR" ] && say "using local checkout" || say "downloading from GitHub"
 
 if [ "$DO_CLAUDE" -eq 1 ]; then

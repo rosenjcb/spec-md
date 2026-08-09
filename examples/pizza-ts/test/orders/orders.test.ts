@@ -9,7 +9,7 @@ describe("OrderStore", () => {
     store = new OrderStore();
   });
 
-  it("[TC-1] Given a valid request, when the store creates the order, then the status is CREATED", () => {
+  it("[TC-5B8L] Given a valid request, when the store creates the order, then the status is CREATED", () => {
     const order = store.create({
       customerId: "cust-1",
       items: [{ pizzaId: "pepperoni", size: "large", quantity: 2 }],
@@ -20,7 +20,7 @@ describe("OrderStore", () => {
     expect(order.placedAt).toBeTypeOf("string");
   });
 
-  it("[TC-4] Given a large item and a small item, when the store creates the order, then the total includes the size and the quantity", () => {
+  it("[TC-0QQE] Given a large item and a small item, when the store creates the order, then the total includes the size and the quantity", () => {
     const order = store.create({
       customerId: "cust-1",
       items: [
@@ -33,7 +33,7 @@ describe("OrderStore", () => {
     expect(order.total).toBe(4420);
   });
 
-  it("[TC-5] Given a created order, when the caller changes the returned object, then the stored order does not change", () => {
+  it("[TC-KK60] Given a created order, when the caller changes the returned object, then the stored order does not change", () => {
     const created = store.create({
       customerId: "cust-1",
       items: [{ pizzaId: "veggie", size: "medium", quantity: 1 }],
@@ -47,7 +47,7 @@ describe("OrderStore", () => {
     expect(fetched.items[0]!.quantity).toBe(1);
   });
 
-  it("[TC-6] Given a request with no customerId, when the store creates the order, then it throws a ValidationError", () => {
+  it("[TC-ZFJF] Given a request with no customerId, when the store creates the order, then it throws a ValidationError", () => {
     expect(() =>
       store.create({
         customerId: "",
@@ -56,13 +56,13 @@ describe("OrderStore", () => {
     ).toThrow(ValidationError);
   });
 
-  it("[TC-7] Given an empty items list, when the store creates the order, then it throws a ValidationError", () => {
+  it("[TC-CV9T] Given an empty items list, when the store creates the order, then it throws a ValidationError", () => {
     expect(() => store.create({ customerId: "cust-1", items: [] })).toThrow(
       ValidationError,
     );
   });
 
-  it("[TC-8] Given an unknown pizza, when the store creates the order, then it throws a ValidationError", () => {
+  it("[TC-JJBH] Given an unknown pizza, when the store creates the order, then it throws a ValidationError", () => {
     expect(() =>
       store.create({
         customerId: "cust-1",
@@ -71,7 +71,7 @@ describe("OrderStore", () => {
     ).toThrow(/unknown pizza/);
   });
 
-  it("[TC-8] Given a quantity of zero, when the store creates the order, then it throws a ValidationError", () => {
+  it("[TC-JJBH] Given a quantity of zero, when the store creates the order, then it throws a ValidationError", () => {
     expect(() =>
       store.create({
         customerId: "cust-1",
@@ -80,7 +80,7 @@ describe("OrderStore", () => {
     ).toThrow(/quantity/);
   });
 
-  it("[TC-9] Given an unknown id, when the store gets the order, then it returns undefined", () => {
+  it("[TC-JKUK] Given an unknown id, when the store gets the order, then it returns undefined", () => {
     expect(store.get("does-not-exist")).toBeUndefined();
   });
 });

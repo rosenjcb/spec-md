@@ -7,6 +7,11 @@ import { findSpecs } from "../lib/walk.js";
 import { lintSpec } from "../lib/lint.js";
 import { coverageForSpec } from "../lib/coverage.js";
 import { specTemplate } from "../lib/template.js";
+import {
+  generateTcId,
+  migrateSpecIds,
+  tcIdentitySeed,
+} from "../lib/ids.js";
 import { c, glyph, bar, relative } from "../lib/report.js";
 
 const pkg = JSON.parse(
@@ -14,7 +19,7 @@ const pkg = JSON.parse(
 );
 
 // Flags that take a value, whether written as --key=val or --key val.
-const VALUE_FLAGS = new Set(["out", "sources", "tests", "title"]);
+const VALUE_FLAGS = new Set(["out", "sources", "tests", "title", "requirement", "scenario", "used"]);
 
 function parseArgs(argv) {
   const flags = {};
@@ -136,7 +141,7 @@ function cmdCoverage({ positional, flags }) {
   const pct = totalTc === 0 ? 100 : Math.round((coveredTc / totalTc) * 100);
   console.log(
     `\n${gap === 0 ? glyph.ok : glyph.warn} Overall ${c.bold(pct + "%")} — ` +
-      `${coveredTc}/${totalTc} test cases have a [TC-N] test`,
+      `${coveredTc}/${totalTc} test cases have a [TC-XXXX] test`,
   );
   if (gap > 0 && flags.strict) return 1;
   return 0;
@@ -213,6 +218,87 @@ function cmdCheck(args) {
   return lintCode || covCode;
 }
 
+/**
+ * Migrate sequential TC-N ids to stable TC-XXXX ids.
+ * Plans every rewrite first; aborts a file that would collide.
+ * Idempotent on already-migrated specs.
+ */
+function cmdMigrateIds({ positional, flags }) {
+  const roots = resolveRoots(positional);
+  const specs = findSpecs(roots);
+  if (!specs.length) {
+    console.error(`${glyph.warn} No *.spec.md files found under ${roots.map(relative).join(", ")}`);
+    return flags.strict ? 1 : 0;
+  }
+
+  const results = [];
+  for (const file of specs) {
+    try {
+      results.push(migrateSpecIds(file, { dryRun: !!flags["dry-run"] }));
+    } catch (e) {
+      console.error(`${glyph.err} ${relative(file)}: ${e.message}`);
+      return 1;
+    }
+  }
+
+  if (flags.json) {
+    console.log(JSON.stringify(results, null, 2));
+  } else {
+    let changedCount = 0;
+    for (const r of results) {
+      if (!r.changed) {
+        console.log(`${glyph.ok} ${relative(r.filePath)} ${c.gray("(already stable)")}`);
+        continue;
+      }
+      changedCount++;
+      const pairs = Object.entries(r.mapping)
+        .map(([from, to]) => `${from}→${to}`)
+        .join(", ");
+      const verb = flags["dry-run"] ? "would rewrite" : "rewrote";
+      console.log(
+        `${glyph.ok} ${c.bold(relative(r.filePath))} ${c.gray(`(${pairs})`)}`,
+      );
+      for (const f of r.files) {
+        console.log(`  ${c.gray(verb)} ${relative(f)}`);
+      }
+    }
+    console.log(
+      `\n${glyph.ok} ${specs.length} spec(s), ${changedCount} migrated` +
+        (flags["dry-run"] ? c.gray(" (dry run)") : ""),
+    );
+  }
+  return 0;
+}
+
+/**
+ * Allocate a new stable TC id from a requirement + scenario seed.
+ * Usage: spec-md id --requirement FR-4 --scenario "no customerId"
+ *    or: spec-md id FR-4 "no customerId"
+ */
+function cmdId({ positional, flags }) {
+  let requirement = flags.requirement ? String(flags.requirement) : "";
+  let scenario = flags.scenario ? String(flags.scenario) : "";
+  if (!requirement && positional.length) {
+    requirement = positional[0];
+    scenario = positional.slice(1).join(" ");
+  }
+  if (!requirement) {
+    console.error(
+      `${glyph.err} usage: spec-md id --requirement FR-4 --scenario "…" [--used TC-XXXX,…]`,
+    );
+    return 1;
+  }
+  const used = flags.used
+    ? String(flags.used)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+  const id = generateTcId(tcIdentitySeed(requirement, scenario), used);
+  console.log(id);
+  return 0;
+}
+
 function usage() {
   console.log(`${c.bold("spec-md")} ${c.gray("v" + pkg.version)} — tooling for *.spec.md documents
 
@@ -221,23 +307,29 @@ ${c.bold("Usage")}
 
 ${c.bold("Commands")}
   ${c.cyan("lint")} [paths]        Validate frontmatter, FR/TC structure, and links
-  ${c.cyan("coverage")} [paths]    Report which TC-N have a matching [TC-N] test
+  ${c.cyan("coverage")} [paths]    Report which TC ids have a matching [TC-XXXX] test
   ${c.cyan("check")} [paths]       lint + coverage, strict (ideal for CI)
   ${c.cyan("list")} [paths]        List every spec with FR/TC counts and coverage
   ${c.cyan("new")} <domain>        Scaffold a new <domain>.spec.md from a template
   ${c.cyan("create")} <domain>     Alias for new
+  ${c.cyan("id")}                  Generate a stable TC-XXXX from requirement + scenario
+  ${c.cyan("migrate-ids")} [paths] Rewrite legacy TC-N rows and [TC-N] tags to TC-XXXX
 
 ${c.bold("Options")}
   --strict            Exit non-zero on warnings / coverage gaps
   --require-approved  lint/check: fail unless every review record linked from
                       a spec's \`review\` key has status "approved" (merge gate)
   --json              Machine-readable output
-  --tests <path>      coverage: search this path for [TC-N] tags
+  --tests <path>      coverage: search this path for [TC-XXXX] tags
   --out <path>        new: output file path
   --sources <paths>   new: frontmatter sources
   --tests <paths>     new: frontmatter tests
   --title <text>      new: frontmatter title
   --force             new: overwrite an existing file
+  --requirement FR-N  id: Functional Requirement the case proves
+  --scenario <text>   id: scenario text used only as the generation seed
+  --used <ids>        id: comma-separated TC ids already taken in the spec
+  --dry-run           migrate-ids: plan rewrites without writing files
   -h, --help          Show this help
   -v, --version       Show version
 
@@ -247,6 +339,8 @@ ${c.bold("Examples")}
   spec-md check --strict          ${c.gray("# CI gate")}
   spec-md check --require-approved ${c.gray("# merge gate: linked reviews must be approved")}
   spec-md new billing             ${c.gray("# scaffold billing.spec.md")}
+  spec-md id --requirement FR-4 --scenario "no customerId"
+  spec-md migrate-ids .           ${c.gray("# TC-1 → TC-XXXX across specs + tests")}
 `);
 }
 
@@ -275,6 +369,10 @@ const commands = {
   new: cmdNew,
   create: cmdNew,
   init: cmdNew,
+  id: cmdId,
+  "gen-id": cmdId,
+  "migrate-ids": cmdMigrateIds,
+  migrate: cmdMigrateIds,
 };
 
 const handler = commands[command];

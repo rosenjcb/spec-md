@@ -41,10 +41,10 @@ retrieve a placed order by its id ([FR-5]). This system does not do payment,
 inventory, or delivery ([Scope](./order.spec.md#scope)).
 
 **Joe Jack (QA)** — The acceptance criteria are nine concrete cases
-([TC-1 to TC-9](./order.spec.md#qa-test-cases)). The API returns status 400 for
+([QA Test Cases](./order.spec.md#qa-test-cases)). The API returns status 400 for
 each invalid request: no customer, an empty item list, or an unknown pizza
-([TC-6] to [TC-8]). The price rounds to the cent after the size multiplier
-([TC-3]). The API returns 404 for an unknown id ([TC-9]). Tell us before the
+([TC-ZFJF], [TC-CV9T], [TC-JJBH]). The price rounds to the cent after the size multiplier
+([TC-TUBJ]). The API returns 404 for an unknown id ([TC-JKUK]). Tell us before the
 deadline about each case your harness cannot assert.
 
 **Enrique (Design)** — The order flow has three sizes at fixed multipliers, and

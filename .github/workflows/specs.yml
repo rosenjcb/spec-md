@@ -34,7 +34,7 @@ jobs:
       - name: Tests
         run: pnpm test
 
-      # Dogfood: validate this repo's own specs and their [TC-N] coverage.
+      # Dogfood: validate this repo's own specs and their [TC-XXXX] coverage.
       - name: Validate specs
         run: node cli/bin/spec-md.js check . --strict
 

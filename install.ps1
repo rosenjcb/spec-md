@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  spec.md installer for Windows — drop the spec-md skill and/or agent rule files into a project.
+  spec-md installer for Windows — drop the spec-md skill and/or agent rule files into a project.
 
 .EXAMPLE
   irm https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.ps1 | iex
@@ -63,7 +63,7 @@ if ($All) { $Claude=$true; $Cursor=$true; $Windsurf=$true; $Cline=$true; $Copilo
 $any = $Claude -or $Cursor -or $Windsurf -or $Cline -or $Copilot -or $Agents
 if (-not $any) { $Claude = $true; $Agents = $true }
 
-Write-Host "spec.md installer  ($Repo@$Branch)`n" -ForegroundColor White
+Write-Host "spec-md installer  ($Repo@$Branch)`n" -ForegroundColor White
 if ($SrcDir) { Say "using local checkout" } else { Say "downloading from GitHub" }
 
 if ($Claude) {

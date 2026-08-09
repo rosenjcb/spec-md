@@ -11,17 +11,17 @@ client.test("[smoke] Given the service, when the client gets /health, then the A
 });
 %}
 
-### Browse the menu (TC-2)
+### Browse the menu (TC-WEZK)
 GET {{host}}/menu
 
 > {%
-client.test("[TC-2] Given the menu, when the client gets /menu, then the API returns one item or more", function () {
+client.test("[TC-WEZK] Given the menu, when the client gets /menu, then the API returns one item or more", function () {
   client.assert(response.status === 200, "expected 200");
   client.assert(response.body.items.length > 0, "expected menu items");
 });
 %}
 
-### Create an order (TC-1, TC-4)
+### Create an order (TC-5B8L, TC-0QQE)
 # @name createOrder
 POST {{host}}/orders
 Content-Type: application/json
@@ -35,26 +35,26 @@ Content-Type: application/json
 }
 
 > {%
-client.test("[TC-1] Given a valid request, when the client posts to /orders, then the API creates the order", function () {
+client.test("[TC-5B8L] Given a valid request, when the client posts to /orders, then the API creates the order", function () {
   client.assert(response.status === 201, "expected 201");
   client.assert(response.body.status === "CREATED", "expected CREATED");
 });
-client.test("[TC-4] Given priced line items, when the API creates the order, then the total includes the size and the quantity", function () {
+client.test("[TC-0QQE] Given priced line items, when the API creates the order, then the total includes the size and the quantity", function () {
   client.assert(response.body.total === 4420, "expected total 4420 cents");
 });
 client.global.set("orderId", response.body.id);
 %}
 
-### Fetch the created order (TC-9)
+### Fetch the created order (TC-JKUK)
 GET {{host}}/orders/{{orderId}}
 
 > {%
-client.test("[TC-9] Given a created order, when the client gets it by id, then the API returns the order", function () {
+client.test("[TC-JKUK] Given a created order, when the client gets it by id, then the API returns the order", function () {
   client.assert(response.status === 200, "expected 200");
 });
 %}
 
-### Reject an invalid order (TC-6)
+### Reject an invalid order (TC-ZFJF)
 POST {{host}}/orders
 Content-Type: application/json
 
@@ -64,16 +64,16 @@ Content-Type: application/json
 }
 
 > {%
-client.test("[TC-6] Given an invalid request, when the client posts to /orders, then the API returns 400", function () {
+client.test("[TC-ZFJF] Given an invalid request, when the client posts to /orders, then the API returns 400", function () {
   client.assert(response.status === 400, "expected 400");
 });
 %}
 
-### Unknown order returns 404 (TC-9)
+### Unknown order returns 404 (TC-JKUK)
 GET {{host}}/orders/does-not-exist
 
 > {%
-client.test("[TC-9] Given an unknown id, when the client gets the order, then the API returns 404", function () {
+client.test("[TC-JKUK] Given an unknown id, when the client gets the order, then the API returns 404", function () {
   client.assert(response.status === 404, "expected 404");
 });
 %}

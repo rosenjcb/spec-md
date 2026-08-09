@@ -7,8 +7,9 @@ const ISO_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})
 const URL_RE = /^[a-z][a-z0-9+.-]*:\/\//i;
 
 /**
- * FR/TC tables must list ids as prefix-1 .. prefix-n in ascending order with
- * no skips. Position i (0-based) must be exactly `${prefix}-${i + 1}`.
+ * FR tables must list ids as FR-1 .. FR-n in ascending order with no skips.
+ * Position i (0-based) must be exactly `FR-${i + 1}`.
+ * TC ids are opaque and stable — they are not sequenced (see ids.js).
  */
 export function checkIdSequence(rows, prefix, label, err) {
   for (let i = 0; i < rows.length; i++) {
@@ -139,14 +140,16 @@ export function lintSpec(filePath, opts = {}) {
   const referencedFrs = new Set();
   for (const tc of spec.tcs) {
     if (!tc.valid) {
-      err(`Malformed test-case id "${tc.id}" (expected TC-<number>)`, tc.line);
+      err(
+        `Malformed test-case id "${tc.id}" (expected TC-[A-Z0-9]{4}, e.g. TC-K7MF)`,
+        tc.line,
+      );
     }
     if (tcIds.has(tc.id)) {
       err(`Duplicate test-case id ${tc.id}`, tc.line);
     }
     tcIds.add(tc.id);
 
-    if (tc.removed) continue;
     if (tc.requirements.length === 0) {
       warn(`${tc.id} does not cite a Functional Requirement`, tc.line);
     }
@@ -157,11 +160,11 @@ export function lintSpec(filePath, opts = {}) {
       }
     }
   }
-  checkIdSequence(spec.tcs, "TC", "Test case", err);
+  // TC ids are stable opaque join keys — not row indices. Do not require
+  // contiguous or ascending order.
 
   // Every FR should be proven by at least one TC.
   for (const fr of spec.frs) {
-    if (fr.removed) continue;
     if (!referencedFrs.has(fr.id)) {
       warn(`${fr.id} has no QA Test Case referencing it`, fr.line);
     }

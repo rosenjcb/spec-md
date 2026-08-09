@@ -43,7 +43,7 @@ Install the **httpyac** extension, open `orders.http`, and use "Send All" /
 
 ## Note on format
 
-Only [`../specs/order.spec.md`](../specs/order.spec.md) follows the OKF/spec.md
+Only [`../specs/order.spec.md`](../specs/order.spec.md) follows the OKF/spec-md
 format. These READMEs are plain developer documentation. The `.http` files are
 too, but the test names in them use the same
 [Simplified Technical English](../../../README.md#the-language) as the spec

@@ -1,4 +1,4 @@
-# Releasing spec.md
+# Releasing spec-md
 
 Automated releases follow the [Changesets](https://github.com/changesets/changesets) flow used in [rosenjcb/kb](https://github.com/rosenjcb/kb): version on the PR branch, tag + publish on merge to `main`.
 
