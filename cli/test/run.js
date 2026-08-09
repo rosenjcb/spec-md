@@ -324,6 +324,24 @@ test("id generates a stable deterministic TC id", () => {
   assert.match(a.out.trim(), /^TC-[A-Z0-9]{4}$/);
 });
 
+test("id --used skips taken candidates", () => {
+  const natural = run(["id", "--requirement", "FR-4", "--scenario", "no customerId"]);
+  assert.equal(natural.code, 0, natural.out);
+  const taken = natural.out.trim();
+  const next = run([
+    "id",
+    "--requirement",
+    "FR-4",
+    "--scenario",
+    "no customerId",
+    "--used",
+    taken,
+  ]);
+  assert.equal(next.code, 0, next.out);
+  assert.notEqual(next.out.trim(), taken);
+  assert.match(next.out.trim(), /^TC-[A-Z0-9]{4}$/);
+});
+
 test("migrate-ids rewrites legacy numeric ids and tags", () => {
   const dir = mkdtempSync(join(tmpdir(), "spec-md-mig-"));
   try {
@@ -417,6 +435,70 @@ test("planTcIdMigration is idempotent on stable ids", () => {
   });
   assert.equal(plan.changes, 0);
   assert.equal(plan.collisions.length, 0);
+});
+
+test("planTcIdMigration migrates mixed legacy + stable rows", () => {
+  const plan = planTcIdMigration({
+    tcs: [
+      {
+        id: "TC-K7MF",
+        reqRaw: "FR-1",
+        scenario: "already stable",
+        requirements: ["FR-1"],
+      },
+      {
+        id: "TC-1",
+        reqRaw: "FR-1",
+        scenario: "legacy row",
+        requirements: ["FR-1"],
+      },
+    ],
+  });
+  assert.equal(plan.changes, 1);
+  assert.equal(plan.mapping.get("TC-K7MF"), "TC-K7MF");
+  assert.notEqual(plan.mapping.get("TC-1"), "TC-1");
+  assert.match(plan.mapping.get("TC-1"), /^TC-[A-Z0-9]{4}$/);
+  // Destination must not steal the reserved stable id.
+  assert.notEqual(plan.mapping.get("TC-1"), "TC-K7MF");
+  assert.equal(plan.collisions.length, 0);
+});
+
+test("planTcIdMigration rejects malformed non-legacy ids", () => {
+  const plan = planTcIdMigration({
+    tcs: [
+      {
+        id: "TC-BAD!",
+        reqRaw: "FR-1",
+        scenario: "x",
+        requirements: ["FR-1"],
+      },
+    ],
+  });
+  assert.ok(plan.collisions.some((c) => /malformed/i.test(c)));
+});
+
+test("migrate-ids rewrites linked review records", () => {
+  const dir = mkdtempSync(join(tmpdir(), "spec-md-mig-rev-"));
+  try {
+    writeFileSync(
+      join(dir, "thing.spec.md"),
+      `---\ntype: Spec\ntitle: Mig\nreview: ./thing.review.md\ntests: [./test]\n---\n### Functional Requirements\n| ID | Requirement |\n|----|----|\n| FR-1 | a |\n### QA Test Cases\n| Test ID | Requirement | Scenario | Expected Outcome |\n|--|--|--|--|\n| TC-1 | FR-1 | valid | ok |\n`,
+    );
+    writeFileSync(
+      join(dir, "thing.review.md"),
+      `---\ntype: Review\ntitle: R\nspec: ./thing.spec.md\nstatus: open\n---\nSee TC-1 for the happy path.\n`,
+    );
+    mkdirSync(join(dir, "test"));
+    writeFileSync(join(dir, "test/a.test.js"), `it("[TC-1] ok", () => {});\n`);
+
+    const r = run(["migrate-ids", dir]);
+    assert.equal(r.code, 0, r.out);
+    const review = readFileSync(join(dir, "thing.review.md"), "utf8");
+    assert.doesNotMatch(review, /\bTC-1\b/);
+    assert.match(review, /TC-[A-Z0-9]{4}/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 console.log("\nparse");

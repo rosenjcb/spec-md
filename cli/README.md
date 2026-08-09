@@ -76,14 +76,50 @@ A Test ID has the form `TC-[A-Z0-9]{4}` (for example `TC-K7MF`). It is:
 - **generated once** — hash of the initial requirement + scenario seed, with
   deterministic collision resolution; after write, never recompute.
 
+### Allocation algorithm
+
+```mermaid
+flowchart LR
+    seed["seed =<br/>requirement|scenario"] --> h["SHA-256"]
+    h --> b["8-byte int → base36"]
+    b --> id["TC-XXXX"]
+    id --> hit{"in used set?"}
+    hit -- no --> done([return id])
+    hit -- yes --> next["seed:n for n = 1.."]
+    next --> h
+```
+
+| Step | What happens |
+|------|----------------|
+| Seed | `trim(requirement) + "\|" + trim(scenario)`. Expected Outcome is **not** in the seed. |
+| Hash | SHA-256 of the UTF-8 seed. Take the first 8 bytes as a big-endian integer. Emit four base36 digits (`0-9A-Z`). |
+| Prefix | `TC-` + those four characters. |
+| Collision | If the candidate is already in the `used` set for this spec, hash `seed:1`, then `seed:2`, and so on, until free (open-addressing style). Deterministic for a given seed + used set. |
+| Permanent | Once the id is written into the `*.spec.md` table, it is the join key forever. Edit row text in place; do not regenerate. |
+
+```bash
+spec-md id --requirement FR-4 --scenario "The request has no customerId"
+spec-md id --requirement FR-4 --scenario "…" --used TC-K7MF,TC-2QXR
+```
+
+### Migration
+
 Legacy sequential tables (`TC-1`, `TC-2`, …) fail `lint`. Run:
 
 ```bash
 spec-md migrate-ids .
+# plan only:
+spec-md migrate-ids . --dry-run --json
 ```
 
-to rewrite the spec rows and the `[TC-N]` tags under each spec's `tests` paths
-in one atomic pass.
+`migrate-ids` rewrites, per spec:
+
+1. every legacy `TC-N` cell → a new `TC-XXXX` from that row’s requirement + scenario;
+2. matching `[TC-N]` tags under the spec’s `tests` paths;
+3. TC tokens in the linked `review` record (if local).
+
+Already-stable ids are left alone. The command is idempotent. Whole-token
+rewrite avoids turning `TC-10` into something derived from `TC-1`.
 
 ## Exit codes
 

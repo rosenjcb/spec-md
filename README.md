@@ -392,6 +392,31 @@ it("[TC-91CX] Given a request with no customerId, when the store creates the ord
 
 Generate a new id with `spec-md id --requirement FR-4 --scenario "…"`. Never invent `TC-1`, and never renumber existing ids when you insert, delete, or reorder rows.
 
+```mermaid
+flowchart TD
+    newCase([New test case]) --> seed["seed = trim(requirement) + '|' + trim(scenario)"]
+    seed --> hash["SHA-256 → first 8 bytes → 4-char base36"]
+    hash --> cand["candidate TC-XXXX"]
+    cand --> free{Id free in this spec?}
+    free -- yes --> write["Write the id into the table once"]
+    free -- no --> probe["Re-hash seed + ':1', ':2', …"]
+    probe --> cand
+    write --> tag["Prefix tests with [TC-XXXX]"]
+    tag --> cov["spec-md coverage greps for the tag"]
+
+    legacy([Legacy TC-N table]) --> mig["spec-md migrate-ids"]
+    mig --> seed
+    mig --> rew["Rewrite rows, [TC-N] tags, and linked review text"]
+```
+
+How allocation works (detail in [`cli/README.md`](./cli/README.md#stable-test-ids)):
+
+1. **Seed** is `requirement|scenario` only — Expected Outcome can change without a new id.
+2. **Hash** is SHA-256 of the seed, reduced to four uppercase base36 characters (`0-9A-Z`).
+3. **Collisions** re-hash `seed:1`, `seed:2`, … until the id is free in that spec (like open addressing).
+4. **After write, the id is permanent.** Do not re-run generation when you edit the row text.
+5. **Pass `--used`** when allocating next to existing rows so the tool skips taken ids.
+
 The convention does not depend on the runner. The same tag works in a Vitest name, a JUnit display name, or an `.http` request assertion. We suggest Gherkin *Given / When / Then* phrasing, because it makes each test name its precondition, its action, and its outcome. It is not a requirement: `[TC-JKUK] returns 404 for an unknown order id` is equally valid. One Test ID can have many tests — a unit test that proves the logic and an integration test that proves the wiring both point at the same row.
 
 `spec-md coverage` reads the `tests` paths of each spec, scans them for tags, and reports the match:
