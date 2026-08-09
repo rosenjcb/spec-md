@@ -101,16 +101,26 @@ The spec is **living**. When behavior changes, the spec rows change with it — 
 
 Get spec.md into your project in one line. Every option, flag by flag: **[INSTALL.md](./INSTALL.md)**.
 
-```bash
+```text
 # Claude Code — plugin (/spec-md + /spec-md:check + /spec-md:coverage)
 /plugin marketplace add rosenjcb/spec.md
 /plugin install spec-md@spec-md
+```
 
-# Cursor / Codex / others — same skill id (spec-md); default also writes AGENTS.md
+```bash
+# Cursor / Codex / others — same skill id (spec-md).
+# Default (no flags) installs the Claude skill globally + AGENTS.md + .agents/skills/spec-md:
 curl -fsSL https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.sh | bash
-# ./install.sh --cursor   # rule + .agents/skills/spec-md
-# ./install.sh --agents   # AGENTS.md + .agents/skills/spec-md
-# ./install.sh --all
+
+# To pass flags, either pipe them through bash…
+curl -fsSL https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.sh | bash -s -- --cursor
+
+# …or download the script once, then run it with whatever flags you want:
+curl -fsSL https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.sh -o install.sh
+chmod +x install.sh
+./install.sh --cursor   # rule + .agents/skills/spec-md
+./install.sh --agents   # AGENTS.md + .agents/skills/spec-md
+./install.sh --all      # every agent surface
 
 # CLI — lint specs and check TC-N test coverage (great in CI)
 npx @rosenjcb/spec-md check

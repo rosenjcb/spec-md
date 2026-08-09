@@ -2,7 +2,8 @@
 # spec.md installer — drop the spec-md skill and/or agent rule files into a project.
 #
 #   curl -fsSL https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.sh | bash
-#   ./install.sh --all
+#   curl -fsSL https://raw.githubusercontent.com/rosenjcb/spec.md/main/install.sh | bash -s -- --cursor
+#   ./install.sh --all              # from a local checkout / after downloading
 #   ./install.sh --claude --cursor
 #
 # With no agent flags it installs the Claude Code skill globally
