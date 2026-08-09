@@ -55,7 +55,7 @@ Paths default to the current directory. The CLI searches them recursively for
 The `tests` frontmatter field of a spec points at where its verification lives.
 `spec-md coverage` reads those spec-relative paths, scans them for the
 `[TC-XXXX]` tags in the test names, and matches the tags against the Test ID
-rows of the spec. It ignores a row marked `[REMOVED]`. If a spec declares no
+rows of the spec. If a spec declares no
 `tests`, the search uses the paths you gave on the command line. Ids are
 opaque strings — never sorted or ranged as numbers.
 

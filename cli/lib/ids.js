@@ -29,8 +29,8 @@ export function isLegacyTcId(id) {
  * Implementation detail: not part of the public identifier semantics.
  */
 export function tcIdentitySeed(requirement, scenario) {
-  const req = String(requirement ?? "").replace(/\[(REMOVED|NEW|UPDATED)\]/g, "").trim();
-  const scen = String(scenario ?? "").replace(/\[(REMOVED|NEW|UPDATED)\]/g, "").trim();
+  const req = String(requirement ?? "").trim();
+  const scen = String(scenario ?? "").trim();
   return `${req}|${scen}`;
 }
 

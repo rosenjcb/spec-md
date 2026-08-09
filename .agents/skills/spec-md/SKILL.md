@@ -243,11 +243,13 @@ and these rules also:
 - **Edit a TC row in place** when the behavior changed but the case is the
   same. Update the text of the row, **not** its Test ID. Do not run id
   generation again for an existing row.
-- **Mark removed behavior** instead of a silent deletion when reviewers need
-  the delta: add `[REMOVED]` to the row and delete its `[TC-XXXX]` tests. When
-  nothing refers to it, delete the row. Do **not** renumber other TC ids.
-- **Mark a new or changed row** with `[NEW]` or `[UPDATED]` while the change is
-  in review. Remove the marker after the merge.
+- **Delete a row that no longer applies.** Do not leave ghost rows or
+  changelog-style tags in the table. Git history is the delta. Delete the
+  matching `[TC-XXXX]` tests in the same change. Do **not** renumber other
+  TC ids.
+- **Do not annotate rows with lifecycle tags** such as `[NEW]`, `[UPDATED]`,
+  or `[REMOVED]`. The table is the current contract only. Review deltas live
+  in the PR and, when you need a formal sign-off, in the `*.review.md` briefings.
 - **Reconcile the metadata.** Update `sources` and `tests` if the paths moved,
   and always set `timestamp` to the current time.
 - **Lint at the end.** Run `spec-md lint` (or `check`) on the file. Correct

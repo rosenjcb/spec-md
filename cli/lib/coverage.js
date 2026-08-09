@@ -44,7 +44,7 @@ export function coverageForSpec(filePath, { fallbackRoots = [], searchRoots = nu
     }
   }
 
-  const active = spec.tcs.filter((tc) => !tc.removed && tc.valid);
+  const active = spec.tcs.filter((tc) => tc.valid);
   const covered = active.filter((tc) => foundTags.has(tc.id));
   const uncovered = active.filter((tc) => !foundTags.has(tc.id));
   // Tags in tests that point at a TC the spec never declares.

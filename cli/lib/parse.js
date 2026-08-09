@@ -15,8 +15,6 @@ const ID_RE = {
   tc: TC_ID_RE,
 };
 
-const MARKER_RE = /\[(REMOVED|NEW|UPDATED)\]/g;
-
 /** Split a `key: value` frontmatter line, honoring inline `[a, b]` arrays. */
 function parseScalar(raw) {
   let value = raw.trim();
@@ -122,14 +120,12 @@ export function parseTables(text, frontmatterLines = 0) {
     if (header[0] === "id" && header.some((h) => h.includes("requirement"))) {
       sawFrTable = true;
       bodyRows.forEach((cells, idx) => {
-        const id = (cells[0] || "").replace(MARKER_RE, "").trim();
+        const id = (cells[0] || "").trim();
         if (!id) return;
         frs.push({
           id,
           valid: ID_RE.fr.test(id),
           text: cells.slice(1).join(" | "),
-          markers: [...(cells.join(" ").matchAll(MARKER_RE))].map((m) => m[1]),
-          removed: /\[REMOVED\]/.test(cells.join(" ")),
           line: lineOf(idx + 1),
         });
       });
@@ -143,7 +139,7 @@ export function parseTables(text, frontmatterLines = 0) {
       sawTcTable = true;
       const reqCol = header.findIndex((h) => h.includes("requirement"));
       bodyRows.forEach((cells, idx) => {
-        const id = (cells[0] || "").replace(MARKER_RE, "").trim();
+        const id = (cells[0] || "").trim();
         if (!id) return;
         const reqCell = cells[reqCol] || "";
         const requirements = [...reqCell.matchAll(/FR-\d+/g)].map((m) => m[0]);
@@ -151,10 +147,9 @@ export function parseTables(text, frontmatterLines = 0) {
           id,
           valid: ID_RE.tc.test(id),
           requirements,
-          reqRaw: reqCell.replace(MARKER_RE, "").trim(),
+          reqRaw: reqCell.trim(),
           scenario: cells[reqCol + 1] || "",
           expected: cells[reqCol + 2] || "",
-          removed: /\[REMOVED\]/.test(cells.join(" ")),
           line: lineOf(idx + 1),
         });
       });

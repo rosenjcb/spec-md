@@ -150,7 +150,6 @@ export function lintSpec(filePath, opts = {}) {
     }
     tcIds.add(tc.id);
 
-    if (tc.removed) continue;
     if (tc.requirements.length === 0) {
       warn(`${tc.id} does not cite a Functional Requirement`, tc.line);
     }
@@ -166,7 +165,6 @@ export function lintSpec(filePath, opts = {}) {
 
   // Every FR should be proven by at least one TC.
   for (const fr of spec.frs) {
-    if (fr.removed) continue;
     if (!referencedFrs.has(fr.id)) {
       warn(`${fr.id} has no QA Test Case referencing it`, fr.line);
     }

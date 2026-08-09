@@ -93,7 +93,10 @@ flowchart LR
     ship -. "system evolves,<br/>QA finds gaps" .-> spec
 ```
 
-The spec is **living**. When behavior changes, the spec rows change with it — marked `[NEW]`, `[UPDATED]`, or `[REMOVED]` — and lint verifies the ids. Nothing is fixed in place. The drift only becomes visible.
+The spec is **living**. When behavior changes, the rows change with it: edit text
+in place, append new rows, or delete rows that no longer apply. Lint verifies the
+ids. Git (and the PR) is the changelog — the table itself is only the current
+contract. The drift only becomes visible when you compare history.
 
 ---
 
@@ -248,14 +251,14 @@ sequenceDiagram
 
     Note over PM,CI: 4 — Iterate (the spec stays living)
     PM->>Dev: QA failure / new requirement
-    Dev->>Agent: /spec-md orders — update rows, mark [NEW] / [UPDATED]
+    Dev->>Agent: /spec-md orders — update rows from the real behavior
 ```
 
 The same machinery serves three common situations:
 
 - **New feature, spec first.** Run `/spec-md <domain>` before you write code. The spec becomes the brief the agent implements from, and the QA Test Cases table becomes the test plan. A spec gives the most value here, because you remove the ambiguity *before* it repeats through the code.
 - **Existing code, no spec.** Point `/spec-md` at a domain that already works. The skill derives the spec *from the code* — branching logic and validation become `FR-N` rows. Then `spec-md coverage` shows which behaviors have no test to prove them.
-- **QA failure or bug report.** First decide which artifact is wrong. If the spec already describes the correct behavior, the *code* drifted: correct the code and keep the `[TC-XXXX]` test accurate. The spec does not change. If the *spec* was wrong, update the rows in place, mark them `[UPDATED]`, and run `check` again. The full decision tree, including when a change needs a review round, is the flowchart in [REVIEW.md](./REVIEW.md#when-a-review-is-warranted).
+- **QA failure or bug report.** First decide which artifact is wrong. If the spec already describes the correct behavior, the *code* drifted: correct the code and keep the `[TC-XXXX]` test accurate. The spec does not change. If the *spec* was wrong, update the rows in place and run `check` again. The full decision tree, including when a change needs a review round, is the flowchart in [REVIEW.md](./REVIEW.md#when-a-review-is-warranted).
 
 ---
 
@@ -407,8 +410,8 @@ You update a spec in place, and the ids carry the load, because the `[TC-XXXX]` 
 - **FR ids stay contiguous and ascending** — the FR table is exactly `FR-1..FR-n` in row order, with no gaps. Append `n + 1` for a new requirement.
 - **Test IDs are stable opaque join keys** (`TC-XXXX`). Generate a new id for a new case; never renumber or reuse. Reorder and delete freely — a gap is not a missing test.
 - **Changed behavior edits the text of the row**, not its Test ID.
-- **Removed behavior** can take a `[REMOVED]` marker while reviewers need the delta; then delete the row without renumbering siblings. Drop the matching `[TC-XXXX]` tests in the same change.
-- **`[NEW]` and `[UPDATED]` markers** flag a row while a change is in review. Remove them after the merge.
+- **Removed behavior deletes the row** and its matching `[TC-XXXX]` tests in the same change. Do not leave lifecycle tags in the table. Git history is the delta.
+- **Do not use `[NEW]`, `[UPDATED]`, or `[REMOVED]`** — the table is the current contract only.
 - **`timestamp` changes** on every update.
 - **Legacy sequential tables** (`TC-1`, `TC-2`, …) migrate with `spec-md migrate-ids`.
 
@@ -512,7 +515,7 @@ One or the other, not both — installing both duplicates the `/spec-md` entry. 
 It is a signal: either the spec is missing a row (add it — the behavior is evidently worth verifying) or the test is not an acceptance criterion (tag it `[smoke]` instead).
 
 **Does an approved review lock the spec?**
-No. `status: approved` records that a review round finished. The spec keeps living. The driver decides when a later change needs a new review, and the `[NEW]` and `[UPDATED]` markers make "what changed since you signed" cheap to communicate.
+No. `status: approved` records that a review round finished. The spec keeps living. The driver decides when a later change needs a new review. "What changed since you signed" is the git (and PR) delta against the pinned `revision` on the review record — not tags inside the table.
 
 **What is OKF?**
 The [Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md) — Markdown documents with typed YAML frontmatter, designed to be consumed by humans and agents alike. spec-md extends it with the `Spec` and `Review` document types.

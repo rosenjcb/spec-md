@@ -8,6 +8,8 @@
 
   Brand the product as **spec-md** (hyphen) everywhere except the `*.spec.md` file extension and the existing GitHub repo path `rosenjcb/spec.md`, so skill/plugin ids stay regex-friendly.
 
+  Drop the `[NEW]` / `[UPDATED]` / `[REMOVED]` row lifecycle convention. Specs are the current contract only; git and review records carry the delta. The CLI no longer special-cases those tags.
+
 ## 0.3.6
 
 ### Patch Changes

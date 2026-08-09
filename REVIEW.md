@@ -70,10 +70,10 @@ flowchart TD
     bspec -- no --> fix["Fix it. Spec the domain only<br/>if it keeps causing failures"]
     bspec -- yes --> drift{Spec already describes<br/>the correct behavior?}
     drift -- "yes — code drifted" --> conform["Fix the code, keep the Test ID test honest.<br/>No spec change, no review"]
-    drift -- "no — spec was wrong" --> amend["Update the rows in place,<br/>mark them UPDATED"]
+    drift -- "no — spec was wrong" --> amend["Update the rows in place<br/>(git records the delta)"]
 
     fspec -- no --> author["Author the spec<br/>(create path, kickoff minimum)"]
-    fspec -- yes --> extend["Append FR-N / TC rows,<br/>mark them NEW"]
+    fspec -- yes --> extend["Append FR-N / TC rows"]
 
     amend --> gate{Ambiguous, risky,<br/>or cross-team?}
     author --> gate
@@ -370,9 +370,9 @@ This command fails while any spec links a review record whose `status` is not
 twice: you must pass the flag, and a spec that links no review is not gated. A
 `notice` is not gated either, because it carries no `status`. By design, no
 rule cancels a signature when a spec changes after its review. The driver
-decides when a new review is necessary. The `[NEW]` and `[UPDATED]` markers,
-with contiguous `FR-N` ids and stable Test IDs, make "what changed since you last looked"
-cheap to communicate, and you restate nothing. We want a baseline of how teams
+decides when a new review is necessary. The pinned `revision` on the review
+record, plus the PR/git delta against it, make "what changed since you last
+looked" cheap to communicate, and you restate nothing. We want a baseline of how teams
 use reviews — how many people read, acknowledge, and comment — before we add
 more enforcement.
 
