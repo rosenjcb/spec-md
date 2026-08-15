@@ -1,7 +1,7 @@
 {
   "name": "spec-md",
-  "description": "Author or update *.spec.md files — Open Knowledge Format specs that capture a system's intent, behavior, and verification so humans and agents stay aligned. Use /spec-md to author; /spec-md:check and /spec-md:coverage for validation. Single root SKILL.md (no nested skills/spec-md).",
-  "version": "0.4.0",
+  "description": "The single /spec-md skill for *.spec.md work. It authors or updates Open Knowledge Format specs that capture a system's intent, behavior, and verification so humans and agents stay aligned, and it checks specs or reports test-case coverage. The skill identifies which job the request needs, or presents the options when the intent is unclear. One root SKILL.md — no commands and no nested skills — so it surfaces as the bare /spec-md, with no colon-suffixed sub-commands.",
+  "version": "0.5.0",
   "author": {
     "name": "rosenjcb",
     "url": "https://github.com/rosenjcb"

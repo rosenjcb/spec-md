@@ -1,5 +1,5 @@
 ---
-description: Author or update a *.spec.md file — an Open Knowledge Format spec that captures a system's intent, behavior, and verification so both humans and agents stay aligned. Produces OKF metadata, Intro, Definitions, Scope, Functional Requirements (FR-N), and QA Test Cases with stable TC-XXXX ids. Also creates and manages the optional *.review.md sign-off record (stakeholder roles, per-role briefings, approval state).
+description: The single entry point for *.spec.md work. It does three jobs — author or update a spec, check (lint) specs, and report test-case coverage — and identifies which job the request needs, or presents the options when the intent is unclear. Authoring produces OKF metadata, Intro, Definitions, Scope, Functional Requirements (FR-N), and QA Test Cases with stable TC-XXXX ids, plus the optional *.review.md sign-off record. Check validates frontmatter, FR/TC structure, and id integrity. Coverage cross-references each Test ID against its [TC-XXXX] tests.
 globs: **/*.spec.md
 alwaysApply: false
 ---
@@ -12,12 +12,37 @@ alwaysApply: false
 
 # spec-md
 
-Write a `*.spec.md` file: the authoritative, living description of a system —
-what it does, why it exists, and how it must behave. A spec is shared context
-for Product, Engineering, QA, and agents. It uses the
+`*.spec.md` is the authoritative, living description of a system — what it does,
+why it exists, and how it must behave. A spec is shared context for Product,
+Engineering, QA, and agents. It uses the
 [spec-md](https://github.com/rosenjcb/spec.md) format, an Open Knowledge Format
 extension, so it stays machine-readable and stays synchronized with the system
 it describes.
+
+This is the one skill for `*.spec.md` work. It does three jobs. Start every
+invocation at **Pick the job**.
+
+## Pick the job
+
+Decide which job the request needs — from the words of the user and the state of
+the repo:
+
+| Job | Choose it when the request… | Go to |
+|-----|------------------------------|-------|
+| **Author or update** | describes a domain, feature, or behavior to capture; or asks to write, change, or derive a spec | [Author or update a spec](#when-to-use) |
+| **Check** | asks to validate, lint, or verify specs — frontmatter, FR/TC structure, or id integrity | [Check specs](#check-specs) |
+| **Coverage** | asks which requirements or Test IDs have a test, or where the coverage gaps are | [Coverage](#coverage) |
+
+When the signal is clear, go straight to that job. When the request does not
+point at one job, **do not guess**. Show the options and ask the user to choose:
+
+1. **Author or update a spec** — write a new `*.spec.md`, or revise an existing one.
+2. **Check specs** — lint frontmatter, `FR-N` / `TC-XXXX` structure, and id integrity.
+3. **Coverage** — report which Test IDs have a matching `[TC-XXXX]` test.
+
+Then follow that job below.
+
+---
 
 ## When to use
 
@@ -352,3 +377,57 @@ through Slack or email. Do not build or configure notification machinery.
 - **Stable test identity.** A Test ID (`TC-XXXX`) is a permanent join key.
   Preserve it when you edit, move, or reorder a case. Generate a new id only
   for a new case. FR rows stay `FR-1..FR-n`. Lint is the gate.
+
+---
+
+## Check specs
+
+Validate every `*.spec.md` under the target path. The default path is the whole
+repository.
+
+Run the linter:
+
+```bash
+npx @rosenjcb/spec-md lint .    # replace . with a path to narrow the scope
+```
+
+If the CLI is not installed, read each `*.spec.md` and check it by hand:
+
+- Frontmatter has `type: Spec` and a `title`.
+- `FR-N` ids are unique, well-formed, **contiguous**, and **ascending**
+  (`FR-1..FR-n` in table order — no skips).
+- Test IDs use the stable form `TC-[A-Z0-9]{4}`, are unique within the spec,
+  and are **not** sequence numbers. Do not require contiguous order for TC.
+- Every Test ID cites a `Requirement` that exists as an `FR-N` row.
+- `sources` and `tests` paths resolve on disk.
+
+Group the results by file. For each error, propose the fix: reorder and
+renumber FR rows as needed; for TC, correct format and uniqueness only — never
+renumber a stable id. Do not edit a spec unless the user asks. Summarize first.
+
+## Coverage
+
+Report test-case coverage for the target path. The default path is the whole
+repository.
+
+Run:
+
+```bash
+npx @rosenjcb/spec-md coverage .    # replace . with a path to narrow the scope
+```
+
+The command cross-references each Test ID row against the `[TC-XXXX]` tags in
+the `tests` paths of the spec. If the CLI is not available, do it by hand: for
+each spec, collect its Test IDs and grep for `[TC-` across its `tests` paths.
+
+Then:
+
+1. List each **uncovered** Test ID — a row with no matching `[TC-XXXX]` test.
+2. List each **orphan tag** — a `[TC-XXXX]` in the tests that no spec declares.
+   An orphan tag signals a row that the spec does not have.
+3. For each gap, recommend the concrete next step: write the missing test with
+   the tag, or add the missing TC row (generate a new id with `spec-md id`).
+   Apply the update rules in [Step 2u](#step-2u-update-the-spec).
+
+Summarize the result as a coverage table. Write a test or edit a spec only if
+the user asks.

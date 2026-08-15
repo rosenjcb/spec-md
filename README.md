@@ -9,7 +9,7 @@
 <p><em>The constraint is no longer implementation speed.<br />The constraint is alignment.</em></p>
 
 <p>
-  <img src="https://img.shields.io/badge/version-0.4-6366F1" alt="Version" />
+  <img src="https://img.shields.io/badge/version-0.5-6366F1" alt="Version" />
   <img src="https://img.shields.io/badge/status-draft-8B5CF6" alt="Status: draft" />
   <img src="https://img.shields.io/badge/built%20on-Open%20Knowledge%20Format-22C55E" alt="Built on Open Knowledge Format" />
 </p>
@@ -105,7 +105,7 @@ contract. The drift only becomes visible when you compare history.
 Get spec-md into your project in one line. Every option, flag by flag: **[INSTALL.md](./INSTALL.md)**.
 
 ```text
-# Claude Code — plugin (/spec-md + /spec-md:check + /spec-md:coverage)
+# Claude Code — plugin (one skill, one command: /spec-md)
 /plugin marketplace add rosenjcb/spec.md
 /plugin install spec-md@spec-md
 ```
@@ -131,7 +131,7 @@ npx @rosenjcb/spec-md check
 
 | Surface | What you get |
 |---------|--------------|
-| **Claude Code plugin** | Root `SKILL.md` as `/spec-md` plus the `/spec-md:check` and `/spec-md:coverage` commands. |
+| **Claude Code plugin** | Root `SKILL.md` as the single bare `/spec-md` skill. It authors, checks, and reports coverage — one command, no colon-suffixed sub-commands. |
 | **`install.sh` / `install.ps1`** | Same `spec-md` skill into Claude / `.agents/skills/` (Cursor, Codex) plus per-agent rules and `AGENTS.md`. |
 | **[`spec-md` CLI](./cli)** | `lint`, `coverage`, `check`, `list`, `new`, `id`, `migrate-ids` — validate specs and enforce `[TC-XXXX]` coverage. |
 | **[GitHub Action](./action.yml)** | `uses: rosenjcb/spec.md@main` — fail CI when a spec drifts or a test case loses its test. |
@@ -182,13 +182,20 @@ A complete, runnable end-to-end example — spec, code, tagged unit tests, tagge
 
 ### In your agent
 
-| Command | Available in | What it does |
-|---------|--------------|--------------|
-| `/spec-md <domain or request>` | Every installed agent (it is the skill itself) | Author **or** update a spec — the skill triages which. It reads the code first and derives the spec from it: branching logic becomes `FR-N` rows, edge cases become TC rows with stable `TC-XXXX` ids, and it wires up the `sources` and `tests` paths. It also decides whether the change needs a [review record](#review--sign-off), and asks you when that is unclear. It lints the spec at the end. |
-| `/spec-md:check [path]` | Claude Code plugin | Validate every spec under the path (default: whole repo) — frontmatter, contiguous/ascending `FR-N` ids, stable unique `TC-XXXX` ids, `TC→FR` references, resolvable `sources`/`tests` paths. Reports errors grouped by file and proposes fixes; it does not edit specs unless you ask. |
-| `/spec-md:coverage [path]` | Claude Code plugin | Cross-reference each Test ID against the `[TC-XXXX]` tags in the spec's `tests` paths. Lists uncovered test cases, flags orphan tags (a tag in the suite that no spec declares), and recommends the concrete next step for each gap. |
+There is one command in every agent: `/spec-md`. It is a single skill that does
+three jobs and works out which one you want (and asks when that is unclear):
 
-What `/spec-md` actually does, step by step (the full procedure is [`SKILL.md`](./SKILL.md)):
+| Job | What it does |
+|-----|--------------|
+| **Author or update** a spec | The skill triages create vs. update. It reads the code first and derives the spec from it: branching logic becomes `FR-N` rows, edge cases become TC rows with stable `TC-XXXX` ids, and it wires up the `sources` and `tests` paths. It also decides whether the change needs a [review record](#review--sign-off), and asks you when that is unclear. It lints the spec at the end. |
+| **Check** specs | Validate every spec under a path (default: whole repo) — frontmatter, contiguous/ascending `FR-N` ids, stable unique `TC-XXXX` ids, `TC→FR` references, resolvable `sources`/`tests` paths. Reports errors grouped by file and proposes fixes; it does not edit specs unless you ask. |
+| **Coverage** | Cross-reference each Test ID against the `[TC-XXXX]` tags in the spec's `tests` paths. Lists uncovered test cases, flags orphan tags (a tag in the suite that no spec declares), and recommends the concrete next step for each gap. |
+
+Invoke it as `/spec-md`, optionally with a domain or a request — `/spec-md orders`,
+`/spec-md check the specs`, `/spec-md coverage`. When the request does not point
+at one job, the skill presents the three options and asks you to pick.
+
+What the authoring job does, step by step (the full procedure is [`SKILL.md`](./SKILL.md)):
 
 1. **Triage** — create or update? Does the change warrant a stakeholder review?
 2. **Gather context** — read the code, existing docs, and (when updating) diff the current spec against reality.
@@ -196,7 +203,9 @@ What `/spec-md` actually does, step by step (the full procedure is [`SKILL.md`](
 4. **Link** — point `sources` at the implementation, `tests` at the verification, and make sure every Test ID has a `[TC-XXXX]`-tagged test.
 5. **Lint** — run `spec-md lint` and fix what it flags.
 
-In Cursor, Codex, and other agents there are no `:check` / `:coverage` slash commands — the `/spec-md` skill covers authoring, and you (or the agent) run the CLI directly for validation.
+The surface is the same in every agent — Claude Code, Cursor, Codex, Windsurf,
+Cline, Copilot: the one `/spec-md` skill. You (or the agent) can also run the CLI
+directly for validation in a terminal or in CI.
 
 ### The CLI
 
@@ -511,8 +520,7 @@ A spec does more than describe a feature. It is a shared model of the system tha
 
 | Path | What it is |
 |------|------------|
-| [`SKILL.md`](./SKILL.md) | The canonical skill — the single source of truth every adapter is generated from, and the Claude Code plugin's skill. |
-| [`commands/`](./commands) | The Claude Code plugin slash commands (`/spec-md:check`, `/spec-md:coverage`). |
+| [`SKILL.md`](./SKILL.md) | The canonical skill — the single source of truth every adapter is generated from, and the Claude Code plugin's one skill (author, check, coverage). It surfaces as the bare `/spec-md`; there are no plugin commands. |
 | `AGENTS.md`, `.cursor/`, `.windsurf/`, `.clinerules/`, `.github/copilot-instructions.md`, `.agents/skills/spec-md/` | Generated per-agent adapters — never edit by hand; run `pnpm run sync`. |
 | [`cli/`](./cli) | The `@rosenjcb/spec-md` CLI (npm). |
 | [`action.yml`](./action.yml) | The GitHub Action wrapping `spec-md check`. |
@@ -534,7 +542,7 @@ No. The format and the skill work on their own — the CLI is what makes specs *
 No — most specs never need one. Reviews are opt-in per spec, reserved for changes that are ambiguous, risky, or cross-team. A spec with no `review` key trips no gate.
 
 **Claude Code: plugin or skill-only?**
-One or the other, not both — installing both duplicates the `/spec-md` entry. The plugin adds the `:check` / `:coverage` commands; the skill-only install is just the authoring guidance.
+One or the other, not both — installing both duplicates the `/spec-md` entry. Either way you get the same single `/spec-md` skill that authors, checks, and reports coverage.
 
 **A test in my suite has no matching Test ID row. Is that a failure?**
 It is a signal: either the spec is missing a row (add it — the behavior is evidently worth verifying) or the test is not an acceptance criterion (tag it `[smoke]` instead).
