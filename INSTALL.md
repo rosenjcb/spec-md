@@ -34,29 +34,31 @@ plugin or the skill, but not both**, because both together give you duplicate
 
 ## 1. Claude Code plugin (recommended)
 
-Root `SKILL.md` is the plugin's single skill (no nested `skills/spec-md/` copy).
-Commands are only `:check` and `:coverage`.
+Root `SKILL.md` is the plugin's single skill — no `commands/` directory and no
+nested `skills/spec-md/` copy — so it surfaces as the bare `/spec-md`, with no
+colon-suffixed sub-commands.
 
 ```
 /plugin marketplace add rosenjcb/spec.md
 /plugin install spec-md@spec-md
 ```
 
-Then in any session:
+Then in any session, one command does every job:
 
 ```
-/spec-md orders             # create or update — skill triages either way
-/spec-md:check              # lint every spec in the repo
-/spec-md:coverage           # which Test IDs are missing a [TC-XXXX] test?
+/spec-md orders             # author or update — the skill triages either way
+/spec-md check the specs    # lint every spec in the repo
+/spec-md coverage           # which Test IDs are missing a [TC-XXXX] test?
 ```
 
-Use `/spec-md` to author a spec. Claude can also list a namespaced form of the
-same skill. Use the bare `/spec-md`. Do not install the skill a second time with
+`/spec-md` is one skill that does three jobs — author or update, check, and
+coverage. It works out which job you want from your request, and presents the
+options when the intent is unclear. Do not install the skill a second time with
 `install.sh --claude` if the plugin is already enabled.
 
 ## 2. Claude Code skill only
 
-Authoring guidance without the plugin commands — copies into
+The same single skill without the plugin wrapper — copies into
 `~/.claude/skills/spec-md/` (invoke as `/spec-md`):
 
 ```bash

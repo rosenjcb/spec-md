@@ -6,7 +6,6 @@ import {
   mkdirSync,
   writeFileSync,
   readFileSync,
-  readdirSync,
   rmSync,
   existsSync,
 } from 'node:fs'
@@ -359,14 +358,15 @@ test('real repo adapters are in sync with SKILL.md', () => {
 
 console.log('\nplugin invocation nomenclature')
 /**
- * Authoring is root SKILL.md → `/spec-md`. Only check/coverage are commands
- * (`commands/<stem>.md` → `/spec-md:<stem>`). No nested `skills/spec-md/`
- * (that double-named the slash form). Portable copy: `.agents/skills/spec-md/`.
+ * The plugin is one skill: root SKILL.md → the bare `/spec-md`. That single
+ * skill does all three jobs — author/update, check, coverage — and routes by
+ * intent (it presents the options when the request is unclear). There is no
+ * `commands/` directory and no nested `skills/spec-md/`: either would force a
+ * colon-suffixed slash form (`/spec-md:check`, `/spec-md:spec-md`), which is
+ * exactly what this layout avoids. Portable copy: `.agents/skills/spec-md/`.
  */
-const EXPECTED_COMMAND_FILES = ['check.md', 'coverage.md']
-const EXPECTED_COMMAND_INVOCATIONS = ['/spec-md:check', '/spec-md:coverage']
-/** Docs must also advertise bare `/spec-md` for authoring (trailing space avoids matching `:check`). */
-const EXPECTED_DOC_SNIPPETS = ['/spec-md ', '/spec-md:check', '/spec-md:coverage']
+/** Docs must advertise the bare `/spec-md` (trailing space avoids matching a colon form). */
+const EXPECTED_DOC_SNIPPETS = ['/spec-md ']
 const FORBIDDEN_INVOCATION_SUBSTRINGS = [
   '/spec:update',
   '/spec:check',
@@ -378,6 +378,9 @@ const FORBIDDEN_INVOCATION_SUBSTRINGS = [
   '/spec-md:create',
   '/spec-md:update',
   '/spec-md:author',
+  // Check/coverage are jobs of the one skill now, not separate slash commands.
+  '/spec-md:check',
+  '/spec-md:coverage',
   // Nested plugin skill dir caused /spec-md:spec-md; do not reintroduce or advertise.
   '/spec-md:spec-md',
   '/spec-md:spec-update',
@@ -390,25 +393,20 @@ const FORBIDDEN_INVOCATION_SUBSTRINGS = [
   '/spec ',
 ]
 
-test('command files are action-only; plugin+skill brand is spec-md', () => {
-  const files = readdirSync(join(root, 'commands'))
-    .filter(f => f.endsWith('.md'))
-    .sort()
-  assert.deepEqual(
-    files,
-    EXPECTED_COMMAND_FILES,
-    `commands/*.md must be exactly ${EXPECTED_COMMAND_FILES.join(', ')} — ` +
-      `Claude maps each to /spec-md:<stem>; authoring is the /spec-md skill`
+test('plugin is a single bare-/spec-md skill; no commands or nested skills', () => {
+  // No commands/ directory — its presence forces colon-suffixed /spec-md:<stem>.
+  assert.equal(
+    existsSync(join(root, 'commands')),
+    false,
+    'commands/ must not exist — each commands/<stem>.md becomes /spec-md:<stem>'
   )
 
-  for (const file of files) {
-    assert.equal(file.includes(':'), false, `${file}: no colon in filename`)
-    assert.equal(
-      /^(spec|spec-md)[-.]/.test(file),
-      false,
-      `${file}: must not start with spec-/spec-md- (double-prefix under plugin spec-md)`
-    )
-  }
+  // No skills/ directory — nested skills/spec-md double-names to /spec-md:spec-md.
+  assert.equal(
+    existsSync(join(root, 'skills')),
+    false,
+    'skills/ must not exist (nested skills/spec-md → /spec-md:spec-md)'
+  )
 
   const plugin = JSON.parse(
     readFileSync(join(root, '.claude-plugin/plugin.json'), 'utf8')
@@ -421,27 +419,17 @@ test('command files are action-only; plugin+skill brand is spec-md', () => {
   assert.equal(marketplace.name, 'spec-md')
   assert.equal(marketplace.plugins[0]?.name, 'spec-md')
 
+  // Root SKILL.md named spec-md under plugin spec-md → the bare /spec-md.
   const skillRaw = readFileSync(join(root, 'SKILL.md'), 'utf8')
   const { fm } = splitSkillMarkdown(skillRaw)
   assert.equal(fm.name, 'spec-md')
 
-  // Single-skill Claude plugin layout: root SKILL.md only — no skills/<name>/.
-  assert.equal(
-    existsSync(join(root, 'skills')),
-    false,
-    'skills/ must not exist (nested skills/spec-md → /spec-md:spec-md)'
-  )
-
   const agentsSkill = join(root, '.agents/skills/spec-md/SKILL.md')
   assert.equal(existsSync(agentsSkill), true, 'portable .agents/skills/spec-md/SKILL.md')
   assert.equal(readFileSync(agentsSkill, 'utf8'), skillRaw.trimEnd() + '\n')
-
-  // Derive the live command invocations from disk — do not hardcode a second map.
-  const derived = files.map(f => `/${plugin.name}:${f.replace(/\.md$/, '')}`).sort()
-  assert.deepEqual(derived, [...EXPECTED_COMMAND_INVOCATIONS].sort())
 })
 
-test('docs and manifests advertise /spec-md + :check/:coverage, not stale forms', () => {
+test('docs and manifests advertise the bare /spec-md, not stale or colon forms', () => {
   const surfaces = [
     'README.md',
     'INSTALL.md',

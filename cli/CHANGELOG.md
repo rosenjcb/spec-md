@@ -1,5 +1,21 @@
 # @rosenjcb/spec-md
 
+## 0.5.0
+
+### Minor Changes
+
+- Collapse the Claude Code plugin to a single skill. `/spec-md` now does all three
+  jobs — author or update, check, and coverage. The skill identifies which job the
+  request needs from the words of the user and the state of the repo, and presents
+  the three options when the intent is unclear.
+
+  Remove the `/spec-md:check` and `/spec-md:coverage` slash commands (delete the
+  `commands/` directory) and fold their guidance into the root `SKILL.md` under a
+  "Pick the job" router. With no `commands/` and no nested `skills/`, the plugin
+  surfaces as the bare `/spec-md` — no colon-suffixed sub-commands and no
+  `/spec-md:spec-md` — matching every other agent surface (Cursor, Codex,
+  Windsurf, Cline, Copilot), which already exposed the one skill.
+
 ## 0.4.0
 
 ### Minor Changes
